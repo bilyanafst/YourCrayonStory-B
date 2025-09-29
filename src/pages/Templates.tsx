@@ -1,10 +1,38 @@
 import React from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { Link } from 'react-router-dom'
-import { BookOpen, User, LogOut } from 'lucide-react'
+import { User, LogOut, Loader2 } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { StoryTemplate } from '../types/database'
+import { StoryCard } from '../components/StoryCard'
 
 export function Templates() {
   const { user, signOut } = useAuth()
+  const [templates, setTemplates] = useState<StoryTemplate[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchTemplates()
+  }, [])
+
+  const fetchTemplates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('story_templates')
+        .select('*')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setTemplates(data || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch templates')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSignOut = async () => {
     await signOut()
@@ -50,60 +78,41 @@ export function Templates() {
       <main className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Choose Your Story Template
+            Create Your Personalized Story
           </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Start your creative journey with one of our beautifully designed story templates
+            Choose a story template and personalize it with your child's name, appearance, and preferences
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {/* Template cards will go here */}
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-            <div className="h-48 bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center">
-              <BookOpen className="h-16 w-16 text-white" />
-            </div>
-            <div className="p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Adventure Story</h3>
-              <p className="text-gray-600 mb-4">
-                Create exciting adventures with heroes, quests, and magical worlds
-              </p>
-              <button className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
-                Start Writing
-              </button>
-            </div>
+        {loading && (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+            <span className="ml-2 text-gray-600">Loading story templates...</span>
           </div>
+        )}
 
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-            <div className="h-48 bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center">
-              <BookOpen className="h-16 w-16 text-white" />
-            </div>
-            <div className="p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Fairy Tale</h3>
-              <p className="text-gray-600 mb-4">
-                Write classic fairy tales with princesses, dragons, and happy endings
-              </p>
-              <button className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
-                Start Writing
-              </button>
+        {error && (
+          <div className="text-center py-12">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg inline-block">
+              {error}
             </div>
           </div>
+        )}
 
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-            <div className="h-48 bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
-              <BookOpen className="h-16 w-16 text-white" />
-            </div>
-            <div className="p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Mystery</h3>
-              <p className="text-gray-600 mb-4">
-                Craft intriguing mysteries with clues, suspects, and surprising twists
-              </p>
-              <button className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
-                Start Writing
-              </button>
-            </div>
+        {!loading && !error && templates.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-600 text-lg">No story templates available at the moment.</p>
           </div>
-        </div>
+        )}
+
+        {!loading && !error && templates.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {templates.map((template) => (
+              <StoryCard key={template.id} template={template} />
+            ))}
+          </div>
+        )}
       </main>
     </div>
   )

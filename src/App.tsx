@@ -29,6 +29,19 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/templates/:slug"
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                  <div className="text-center">
+                    <h1 className="text-2xl font-bold text-gray-900 mb-4">Story Personalization</h1>
+                    <p className="text-gray-600">This page will allow users to personalize their chosen story template.</p>
+                  </div>
+                </div>
+              </ProtectedRoute>
+            }
+          />
           <Route path="/" element={<Navigate to="/templates" replace />} />
         </Routes>
       </Router>
