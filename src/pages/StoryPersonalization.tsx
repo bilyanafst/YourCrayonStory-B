@@ -17,8 +17,8 @@ export function StoryPersonalization() {
   const [loadingStory, setLoadingStory] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
 
-  // Use specific Supabase project URL for watermark
-  const watermarkUrl = 'https://juaspoktmirevmmmvdtt.supabase.co/storage/v1/object/public/assets/watermark.png'
+  // Use environment variable for Supabase URL
+  const watermarkUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/assets/watermark.png`
 
   useEffect(() => {
     if (slug) {
