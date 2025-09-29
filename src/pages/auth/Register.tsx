@@ -42,7 +42,7 @@ export function Register() {
     } else {
       setSuccess(true)
       setTimeout(() => {
-        navigate('/templates')
+        navigate('/')
       }, 2000)
     }
   }

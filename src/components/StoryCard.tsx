@@ -10,7 +10,7 @@ interface StoryCardProps {
 export function StoryCard({ template }: StoryCardProps) {
   return (
     <Link 
-      to={`/templates/${template.slug}`}
+      to={`/story/${template.slug}`}
       className="group bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
     >
       <div className="relative h-48 overflow-hidden">
