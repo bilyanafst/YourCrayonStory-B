@@ -4,8 +4,8 @@ export interface StoryTemplate {
   title: string
   description: string | null
   cover_image_url: string | null
-  gender: 'boy' | 'girl' | 'unisex'
-  preview_json: any
+  json_url_boy: string | null
+  json_url_girl: string | null
   tags: string[] | null
   price_eur: number | null
   is_published: boolean | null
@@ -15,17 +15,14 @@ export interface StoryTemplate {
 export interface StoryPage {
   page_number: number
   text: string
-  image_url?: string
-  image_base64?: string
+  image_base64: string
 }
 
 export interface StoryData {
-  title: string
   pages: StoryPage[]
 }
 
 export interface CartItem {
-  templateId: string
   slug: string
   title: string
   childName: string

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, User, Heart, ShoppingCart, Loader2 } from 'lucide-react'
+import { ArrowLeft, User, ShoppingCart, Loader2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { StoryTemplate, StoryData, CartItem } from '../types/database'
 
@@ -16,6 +16,10 @@ export function StoryPersonalization() {
   const [storyData, setStoryData] = useState<StoryData | null>(null)
   const [loadingStory, setLoadingStory] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+
+  // Get Supabase project URL for watermark
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  const watermarkUrl = `${supabaseUrl}/storage/v1/object/public/assets/watermark.png`
 
   useEffect(() => {
     if (slug) {
@@ -43,28 +47,42 @@ export function StoryPersonalization() {
     }
   }
 
-  const handlePreview = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     if (!template || !childName.trim()) return
 
     setLoadingStory(true)
+    setError(null)
+
     try {
-      // For demo purposes, we'll use the preview_json from the database
-      // In a real app, you'd fetch from json_url_boy or json_url_girl
-      const storyJson = template.preview_json as StoryData
+      // Get the appropriate JSON URL based on gender
+      const jsonUrl = gender === 'boy' ? template.json_url_boy : template.json_url_girl
       
-      // Replace placeholder names with the child's name
+      if (!jsonUrl) {
+        throw new Error(`Story data not available for ${gender}`)
+      }
+
+      // Fetch the JSON file
+      const response = await fetch(jsonUrl)
+      if (!response.ok) {
+        throw new Error('Failed to fetch story data')
+      }
+
+      const storyJson = await response.json() as StoryData
+      
+      // Replace placeholder names with the child's name in story text
       const personalizedStory = {
         ...storyJson,
         pages: storyJson.pages.map(page => ({
           ...page,
-          text: page.text.replace(/\[CHILD_NAME\]/g, childName)
+          text: page.text.replace(/\[CHILD_NAME\]/g, childName.trim())
         }))
       }
       
       setStoryData(personalizedStory)
       setShowPreview(true)
     } catch (err) {
-      setError('Failed to load story preview')
+      setError(err instanceof Error ? err.message : 'Failed to load story data')
     } finally {
       setLoadingStory(false)
     }
@@ -74,7 +92,6 @@ export function StoryPersonalization() {
     if (!template || !childName.trim()) return
 
     const cartItem: CartItem = {
-      templateId: template.id,
       slug: template.slug,
       title: template.title,
       childName: childName.trim(),
@@ -86,9 +103,9 @@ export function StoryPersonalization() {
     // Get existing cart from localStorage
     const existingCart = JSON.parse(localStorage.getItem('cart') || '[]')
     
-    // Check if item already exists
+    // Check if item already exists (same slug, name, and gender)
     const existingIndex = existingCart.findIndex(
-      (item: CartItem) => item.templateId === cartItem.templateId && 
+      (item: CartItem) => item.slug === cartItem.slug && 
                           item.childName === cartItem.childName &&
                           item.gender === cartItem.gender
     )
@@ -103,8 +120,13 @@ export function StoryPersonalization() {
 
     localStorage.setItem('cart', JSON.stringify(existingCart))
     
-    // Show success message or redirect to cart
-    alert('Added to cart! You can continue shopping or proceed to checkout.')
+    // Show success feedback
+    alert(`"${template.title}" for ${childName} has been added to your cart!`)
+  }
+
+  // Prevent right-click on images
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
   }
 
   if (loading) {
@@ -118,12 +140,12 @@ export function StoryPersonalization() {
     )
   }
 
-  if (error || !template) {
+  if (error && !template) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Story Not Found</h1>
-          <p className="text-gray-600 mb-6">{error || 'The requested story template could not be found.'}</p>
+          <p className="text-gray-600 mb-6">{error}</p>
           <button
             onClick={() => navigate('/')}
             className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
@@ -162,12 +184,12 @@ export function StoryPersonalization() {
 
       <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {!showPreview ? (
-          /* Personalization Form */
+          /* Story Details and Form */
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Story Info */}
             <div className="space-y-6">
               <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                {template.cover_image_url && (
+                {template?.cover_image_url && (
                   <img
                     src={template.cover_image_url}
                     alt={template.title}
@@ -175,11 +197,11 @@ export function StoryPersonalization() {
                   />
                 )}
                 <div className="p-6">
-                  <h1 className="text-2xl font-bold text-gray-900 mb-3">{template.title}</h1>
-                  {template.description && (
+                  <h1 className="text-2xl font-bold text-gray-900 mb-3">{template?.title}</h1>
+                  {template?.description && (
                     <p className="text-gray-600 mb-4">{template.description}</p>
                   )}
-                  {template.tags && template.tags.length > 0 && (
+                  {template?.tags && template.tags.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {template.tags.map((tag, index) => (
                         <span
@@ -200,7 +222,7 @@ export function StoryPersonalization() {
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-6">Personalize Your Story</h2>
                 
-                <div className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Child's Name */}
                   <div>
                     <label htmlFor="childName" className="block text-sm font-medium text-gray-700 mb-2">
@@ -214,6 +236,7 @@ export function StoryPersonalization() {
                         onChange={(e) => setChildName(e.target.value)}
                         className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         placeholder="Enter your child's name"
+                        required
                       />
                       <User className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
                     </div>
@@ -224,57 +247,55 @@ export function StoryPersonalization() {
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Choose Character
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setGender('boy')}
-                        className={`p-4 border-2 rounded-lg transition-all ${
-                          gender === 'boy'
-                            ? 'border-blue-500 bg-blue-50 text-blue-700'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className="text-center">
-                          <div className="text-2xl mb-2">👦</div>
-                          <span className="font-medium">Boy</span>
-                        </div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setGender('girl')}
-                        className={`p-4 border-2 rounded-lg transition-all ${
-                          gender === 'girl'
-                            ? 'border-pink-500 bg-pink-50 text-pink-700'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className="text-center">
-                          <div className="text-2xl mb-2">👧</div>
-                          <span className="font-medium">Girl</span>
-                        </div>
-                      </button>
+                    <div className="space-y-2">
+                      <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                        <input
+                          type="radio"
+                          name="gender"
+                          value="boy"
+                          checked={gender === 'boy'}
+                          onChange={(e) => setGender(e.target.value as 'boy' | 'girl')}
+                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                        />
+                        <span className="ml-3 text-sm font-medium text-gray-900">👦 Boy</span>
+                      </label>
+                      <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                        <input
+                          type="radio"
+                          name="gender"
+                          value="girl"
+                          checked={gender === 'girl'}
+                          onChange={(e) => setGender(e.target.value as 'boy' | 'girl')}
+                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                        />
+                        <span className="ml-3 text-sm font-medium text-gray-900">👧 Girl</span>
+                      </label>
                     </div>
                   </div>
 
-                  {/* Preview Button */}
+                  {/* Error Display */}
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                      {error}
+                    </div>
+                  )}
+
+                  {/* Submit Button */}
                   <button
-                    onClick={handlePreview}
+                    type="submit"
                     disabled={!childName.trim() || loadingStory}
                     className="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
                   >
                     {loadingStory ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Loading Preview...</span>
+                        <span>Loading Story...</span>
                       </>
                     ) : (
-                      <>
-                        <Heart className="h-4 w-4" />
-                        <span>Preview Story</span>
-                      </>
+                      <span>Preview Story</span>
                     )}
                   </button>
-                </div>
+                </form>
               </div>
 
               {/* Price */}
@@ -282,7 +303,7 @@ export function StoryPersonalization() {
                 <div className="flex items-center justify-between">
                   <span className="text-lg font-medium text-gray-900">Price:</span>
                   <span className="text-2xl font-bold text-indigo-600">
-                    €{template.price_eur?.toFixed(2) || '0.00'}
+                    €{template?.price_eur?.toFixed(2) || '0.00'}
                   </span>
                 </div>
               </div>
@@ -310,43 +331,62 @@ export function StoryPersonalization() {
 
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-                {storyData?.title} - {childName}'s Story
+                {template?.title} - {childName}'s Story
               </h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Story Pages - Vertical List */}
+              <div className="space-y-8">
                 {storyData?.pages.map((page, index) => (
-                  <div key={index} className="relative bg-gray-50 rounded-lg p-4">
-                    <div className="aspect-square bg-white rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
-                      {page.image_url ? (
-                        <img
-                          src={page.image_url}
-                          alt={`Page ${page.page_number}`}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : page.image_base64 ? (
-                        <img
-                          src={`data:image/png;base64,${page.image_base64}`}
-                          alt={`Page ${page.page_number}`}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="text-gray-400 text-center">
-                          <div className="text-4xl mb-2">📖</div>
-                          <span>Page {page.page_number}</span>
-                        </div>
-                      )}
+                  <div key={index} className="bg-gray-50 rounded-lg p-6">
+                    <div className="text-center mb-4">
+                      <span className="text-sm font-medium text-gray-500">Page {page.page_number}</span>
+                    </div>
+                    
+                    {/* Image with Watermark */}
+                    <div className="relative mb-6 max-w-md mx-auto">
+                      <img
+                        src={`data:image/png;base64,${page.image_base64}`}
+                        alt={`Page ${page.page_number}`}
+                        className="w-full rounded-lg shadow-md select-none"
+                        onContextMenu={handleContextMenu}
+                        draggable={false}
+                        style={{ userSelect: 'none' }}
+                      />
                       
-                      {/* Watermark */}
-                      <div className="absolute inset-0 bg-black bg-opacity-10 flex items-center justify-center">
-                        <div className="bg-white bg-opacity-80 px-3 py-1 rounded text-sm font-medium text-gray-700">
-                          PREVIEW
-                        </div>
+                      {/* Watermark Overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <img
+                          src={watermarkUrl}
+                          alt="Watermark"
+                          className="max-w-[60%] max-h-[60%] opacity-40"
+                          style={{ 
+                            mixBlendMode: 'multiply',
+                            userSelect: 'none',
+                            pointerEvents: 'none'
+                          }}
+                          onError={(e) => {
+                            // Fallback to text watermark if image fails to load
+                            const target = e.target as HTMLImageElement
+                            target.style.display = 'none'
+                            const parent = target.parentElement
+                            if (parent) {
+                              const textWatermark = document.createElement('div')
+                              textWatermark.textContent = 'PREVIEW'
+                              textWatermark.className = 'text-gray-600 text-2xl font-bold opacity-40 select-none'
+                              textWatermark.style.userSelect = 'none'
+                              parent.appendChild(textWatermark)
+                            }
+                          }}
+                        />
                       </div>
                     </div>
                     
-                    <p className="text-sm text-gray-700 leading-relaxed">
-                      {page.text}
-                    </p>
+                    {/* Story Text */}
+                    <div className="text-center">
+                      <p className="text-lg text-gray-700 leading-relaxed max-w-2xl mx-auto">
+                        {page.text}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
