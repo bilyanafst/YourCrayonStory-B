@@ -56,7 +56,7 @@ export function StoryPersonalization() {
     try {
       // Get the appropriate JSON URL based on gender
       const jsonUrl = gender === 'boy' ? template.json_url_boy : template.json_url_girl
-      
+      console.log("📦 Fetching story JSON from:", jsonUrl)
       if (!jsonUrl) {
         throw new Error(`Story data not available for ${gender}`)
       }
