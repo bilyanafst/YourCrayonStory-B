@@ -67,18 +67,22 @@ export function StoryPersonalization() {
         throw new Error('Failed to fetch story data')
       }
 
-      const storyJson = await response.json() as StoryData
+      const storyArray = await response.json() as {
+  image: string;
+  caption: string;
+}[]
+
+// Replace {name} with the actual child's name
+const personalizedPages = storyArray.map((page, index) => ({
+  page_number: index + 1,
+  image_base64: page.image.replace(/^data:image\/(png|jpeg);base64,/, ''),
+  text: page.caption.replace(/\{name\}/g, childName.trim()),
+}))
+
+setStoryData({ pages: personalizedPages })
+setShowPreview(true)
+   
       
-      // Replace placeholder names with the child's name in story text
-      const personalizedStory = {
-        ...storyJson,
-        pages: storyJson.pages.map(page => ({
-          ...page,
-          text: page.text.replace(/\[CHILD_NAME\]/g, childName.trim())
-        }))
-      }
-      
-      setStoryData(personalizedStory)
       setShowPreview(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load story data')
