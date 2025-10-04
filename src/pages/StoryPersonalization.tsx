@@ -345,10 +345,10 @@ setShowPreview(true)
                 {storyData?.pages.map((page, index) => (
                   <div key={index} className="relative bg-white p-8 min-h-[297mm] w-full max-w-[210mm] mx-auto" style={{ aspectRatio: '210/297' }}>
                     {/* Full Page Watermark */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                    <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none z-10">
                       <img
                         src={watermarkUrl}
-                        alt="Watermark"
+                        alt="Watermark"a
                         className="w-full h-full object-contain opacity-60"
                         style={{ 
                           mixBlendMode: 'multiply',
