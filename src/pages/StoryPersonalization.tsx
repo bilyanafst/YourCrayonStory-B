@@ -347,11 +347,11 @@ setShowPreview(true)
                     {/* Full Page Watermark */}
                     <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none z-10">
                       <img
-                        src={watermarkUrl}
-                        alt="Watermark"a
-                        className="w-full h-full object-contain opacity-60"
-                        style={{ 
-                         position: 'absolute',
+  src={watermarkUrl}
+  alt="Watermark"
+  className="w-full h-full object-contain opacity-60"
+  style={{
+    position: 'absolute',
     top: 0,
     left: 0,
     width: '100%',
@@ -360,22 +360,23 @@ setShowPreview(true)
     pointerEvents: 'none',
     zIndex: 30,                 // Ensure it’s on top
     userSelect: 'none',
-                        }}
-                        onError={(e) => {
-                          // Fallback to text watermark if image fails to load
-                          const target = e.target as HTMLImageElement
-                          target.style.display = 'none'
-                          const parent = target.parentElement
-                          if (parent) {
-                            const textWatermark = document.createElement('div')
-                            textWatermark.textContent = 'PREVIEW'
-                            textWatermark.className = 'text-gray-600 text-6xl font-bold opacity-60 select-none absolute inset-0 flex items-center justify-center'
-                            textWatermark.style.userSelect = 'none'
-                            textWatermark.style.transform = 'rotate(-45deg)'
-                            parent.appendChild(textWatermark)
-                          }
-                        }}
-                      />
+  }}
+  onError={(e) => {
+    const target = e.target as HTMLImageElement
+    target.style.display = 'none'
+    const parent = target.parentElement
+    if (parent) {
+      const textWatermark = document.createElement('div')
+      textWatermark.textContent = 'PREVIEW'
+      textWatermark.className =
+        'text-gray-600 text-6xl font-bold opacity-60 select-none absolute inset-0 flex items-center justify-center'
+      textWatermark.style.userSelect = 'none'
+      textWatermark.style.transform = 'rotate(-45deg)'
+      parent.appendChild(textWatermark)
+    }
+  }}
+/>
+
                     </div>
 
                     {/* Page Number */}
