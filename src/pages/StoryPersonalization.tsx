@@ -76,7 +76,9 @@ export function StoryPersonalization() {
 const personalizedPages = storyArray.map((page, index) => ({
   page_number: index + 1,
   image_base64: page.image.replace(/^data:image\/(png|jpeg);base64,/, ''),
-  text: page.caption.replace(/\{name\}/g, childName.trim()),
+text: page.caption
+    .replace(/\{\{name\}\}/gi, childName.trim())  // replaces {{name}}
+    .replace(/\{name\}/gi, childName.trim())  
 }))
 
 setStoryData({ pages: personalizedPages })
