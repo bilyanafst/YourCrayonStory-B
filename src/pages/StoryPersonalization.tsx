@@ -351,9 +351,15 @@ setShowPreview(true)
                         alt="Watermark"a
                         className="w-full h-full object-contain opacity-60"
                         style={{ 
-                          mixBlendMode: 'multiply',
-                          userSelect: 'none',
-                          pointerEvents: 'none'
+                         position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    opacity: 0.6,               // 60% watermark opacity
+    pointerEvents: 'none',
+    zIndex: 30,                 // Ensure it’s on top
+    userSelect: 'none',
                         }}
                         onError={(e) => {
                           // Fallback to text watermark if image fails to load
