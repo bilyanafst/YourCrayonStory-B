@@ -341,26 +341,70 @@ setShowPreview(true)
               </h2>
               
               {/* Story Pages - Vertical List */}
-              <div className="space-y-8">
+              <div className="space-y-0">
                 {storyData?.pages.map((page, index) => (
-                  <div key={index} className="bg-gray-50 rounded-lg p-6">
-                    <div className="text-center mb-4">
+                  <div key={index} className="relative bg-white p-8 min-h-[297mm] w-full max-w-[210mm] mx-auto" style={{ aspectRatio: '210/297' }}>
+                    {/* Full Page Watermark */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                      <img
+                        src={watermarkUrl}
+                        alt="Watermark"
+                        className="w-full h-full object-contain opacity-60"
+                        style={{ 
+                          mixBlendMode: 'multiply',
+                          userSelect: 'none',
+                          pointerEvents: 'none'
+                        }}
+                        onError={(e) => {
+                          // Fallback to text watermark if image fails to load
+                          const target = e.target as HTMLImageElement
+                          target.style.display = 'none'
+                          const parent = target.parentElement
+                          if (parent) {
+                            const textWatermark = document.createElement('div')
+                            textWatermark.textContent = 'PREVIEW'
+                            textWatermark.className = 'text-gray-600 text-6xl font-bold opacity-60 select-none absolute inset-0 flex items-center justify-center'
+                            textWatermark.style.userSelect = 'none'
+                            textWatermark.style.transform = 'rotate(-45deg)'
+                            parent.appendChild(textWatermark)
+                          }
+                        }}
+                      />
+                    </div>
+
+                    {/* Page Number */}
+                    <div className="relative z-20 text-center mb-6">
                       <span className="text-sm font-medium text-gray-500">Page {page.page_number}</span>
                     </div>
                     
-                    {/* Image with Watermark */}
-                    <div className="relative mb-6 max-w-md mx-auto">
+                    {/* Image */}
+                    <div className="relative z-20 mb-8 flex justify-center">
                       <img
                         src={`data:image/png;base64,${page.image_base64}`}
                         alt={`Page ${page.page_number}`}
-                        className="w-full rounded-lg shadow-md select-none"
+                        className="max-w-full max-h-[60%] object-contain select-none"
                         onContextMenu={handleContextMenu}
                         draggable={false}
                         style={{ userSelect: 'none' }}
                       />
-                      
-                      {/* Watermark Overlay */}
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    </div>
+                    
+                    {/* Story Text */}
+                    <div className="relative z-20 text-center mt-auto">
+                      <p className="text-xl text-gray-800 leading-relaxed font-medium px-4">
+                        {page.text}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
                         <img
                           src={watermarkUrl}
                           alt="Watermark"
