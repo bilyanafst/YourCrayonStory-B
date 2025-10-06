@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { StoryTemplate } from '../types/database'
 import { StoryCard } from '../components/StoryCard'
+import { CartIcon } from '../components/CartIcon'
 
 export function Home() {
   const { user, signOut } = useAuth()
@@ -55,6 +56,7 @@ export function Home() {
             <div className="flex items-center space-x-4">
               {user ? (
                 <>
+                  <CartIcon />
                   <span className="text-sm text-gray-600">
                     Welcome, {user?.user_metadata?.full_name || user?.email}!
                   </span>
@@ -75,6 +77,7 @@ export function Home() {
                 </>
               ) : (
                 <div className="flex items-center space-x-4">
+                  <CartIcon />
                   <Link
                     to="/auth/login"
                     className="text-sm text-gray-600 hover:text-gray-900 transition-colors"

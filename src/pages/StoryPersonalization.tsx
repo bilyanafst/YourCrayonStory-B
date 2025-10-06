@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, User, ShoppingCart, Loader2 } from 'lucide-react'
+import { ArrowLeft, User, Loader2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { StoryTemplate, StoryData, CartItem } from '../types/database'
+import { CartModal } from '../components/CartModal'
+import { useCart } from '../hooks/useCart'
+import toast from 'react-hot-toast'
 
 export function StoryPersonalization() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
+  const { addToCart } = useCart()
   
   const [template, setTemplate] = useState<StoryTemplate | null>(null)
   const [loading, setLoading] = useState(true)
@@ -16,6 +20,7 @@ export function StoryPersonalization() {
   const [storyData, setStoryData] = useState<StoryData | null>(null)
   const [loadingStory, setLoadingStory] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [showCartModal, setShowCartModal] = useState(false)
 
   // Use environment variable for Supabase URL
   const watermarkUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/assets/watermark.png`
@@ -94,7 +99,7 @@ setShowPreview(true)
     }
   }
 
-  const addToCart = () => {
+  const handleAddToCart = () => {
     if (!template || !childName.trim()) return
 
     const cartItem: CartItem = {
@@ -106,28 +111,18 @@ setShowPreview(true)
       coverImage: template.cover_image_url
     }
 
-    // Get existing cart from localStorage
-    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]')
-    
-    // Check if item already exists (same slug, name, and gender)
-    const existingIndex = existingCart.findIndex(
-      (item: CartItem) => item.slug === cartItem.slug && 
-                          item.childName === cartItem.childName &&
-                          item.gender === cartItem.gender
-    )
+    addToCart(cartItem)
+    setShowCartModal(true)
+  }
 
-    if (existingIndex >= 0) {
-      // Update existing item
-      existingCart[existingIndex] = cartItem
-    } else {
-      // Add new item
-      existingCart.push(cartItem)
-    }
+  const handleCheckout = () => {
+    setShowCartModal(false)
+    navigate('/checkout')
+  }
 
-    localStorage.setItem('cart', JSON.stringify(existingCart))
-    
-    // Show success feedback
-    alert(`"${template.title}" for ${childName} has been added to your cart!`)
+  const handleContinueBrowsing = () => {
+    setShowCartModal(false)
+    navigate('/')
   }
 
   // Prevent right-click on images
@@ -327,10 +322,9 @@ setShowPreview(true)
                 <span>Back to Personalization</span>
               </button>
               <button
-                onClick={addToCart}
+                onClick={handleAddToCart}
                 className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
               >
-                <ShoppingCart className="h-4 w-4" />
                 <span>Add to Cart</span>
               </button>
             </div>
@@ -409,6 +403,16 @@ setShowPreview(true)
           </div>
         )}
       </div>
+
+      {/* Cart Modal */}
+      <CartModal
+        isOpen={showCartModal}
+        onClose={() => setShowCartModal(false)}
+        onCheckout={handleCheckout}
+        onContinueBrowsing={handleContinueBrowsing}
+        bookTitle={template?.title || ''}
+        childName={childName}
+      />
     </div>
   )
 }
