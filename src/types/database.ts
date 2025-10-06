@@ -30,3 +30,15 @@ export interface CartItem {
   price: number
   coverImage: string | null
 }
+
+export interface Order {
+  id: string
+  user_id: string
+  stripe_session_id: string | null
+  cart_data: CartItem[]
+  delivery_email: string
+  total_amount: number
+  status: 'pending' | 'completed' | 'failed'
+  created_at: string
+  updated_at: string
+}

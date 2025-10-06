@@ -1,24 +1,55 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { ArrowLeft, CreditCard, Loader2, Trash2 } from 'lucide-react'
 import { useCart } from '../hooks/useCart'
+import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
 
 export function Checkout() {
   const navigate = useNavigate()
+  const { user, loading: authLoading } = useAuth()
   const { cartItems, removeFromCart, getTotalPrice, clearCart } = useCart()
   const [loading, setLoading] = useState(false)
+  const [deliveryEmail, setDeliveryEmail] = useState('')
 
+  // Redirect to login if not authenticated
+  if (!authLoading && !user) {
+    return <Navigate to="/auth/login" state={{ from: { pathname: '/checkout' } }} replace />
+  }
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="flex items-center space-x-3">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <span className="text-gray-600">Loading...</span>
+        </div>
+      </div>
+    )
+  }
   useEffect(() => {
     if (cartItems.length === 0) {
       navigate('/')
     }
-  }, [cartItems.length, navigate])
+    // Prefill with user's email
+    if (user?.email) {
+      setDeliveryEmail(user.email)
+    }
+  }, [cartItems.length, navigate, user?.email])
 
   const handleStripeCheckout = async () => {
     setLoading(true)
     
     try {
+      if (!user) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!deliveryEmail.trim()) {
+        throw new Error('Delivery email is required')
+      }
+
       // Create Stripe checkout session
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-session`, {
         method: 'POST',
@@ -27,14 +58,9 @@ export function Checkout() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          items: cartItems.map(item => ({
-            slug: item.slug,
-            title: item.title,
-            childName: item.childName,
-            gender: item.gender,
-            price: item.price,
-            coverImage: item.coverImage
-          }))
+          items: cartItems,
+          userId: user.id,
+          deliveryEmail: deliveryEmail.trim()
         })
       })
 
@@ -91,6 +117,28 @@ export function Checkout() {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-6">Your Cart</h1>
           
+          {/* Delivery Email Section */}
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <h3 className="text-lg font-medium text-gray-900 mb-3">Delivery Information</h3>
+            <div>
+              <label htmlFor="deliveryEmail" className="block text-sm font-medium text-gray-700 mb-1">
+                Email for PDF delivery
+              </label>
+              <input
+                id="deliveryEmail"
+                type="email"
+                value={deliveryEmail}
+                onChange={(e) => setDeliveryEmail(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Enter email address"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Your personalized coloring books will be sent to this email address
+              </p>
+            </div>
+          </div>
+
           {/* Cart Items */}
           <div className="space-y-4 mb-6">
             {cartItems.map((item, index) => (
@@ -134,7 +182,7 @@ export function Checkout() {
           {/* Checkout Button */}
           <button
             onClick={handleStripeCheckout}
-            disabled={loading}
+            disabled={loading || !deliveryEmail.trim()}
             className="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
           >
             {loading ? (

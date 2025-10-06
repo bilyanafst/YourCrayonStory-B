@@ -27,7 +27,10 @@ export function Login() {
       setError(error.message)
       setLoading(false)
     } else {
-      navigate(from, { replace: true })
+      // Small delay to ensure auth state is updated
+      setTimeout(() => {
+        navigate(from, { replace: true })
+      }, 100)
     }
   }
 

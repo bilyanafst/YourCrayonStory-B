@@ -1,7 +1,10 @@
 import React, { useState } from 'react'
+import { useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { User, Mail, LogOut, Save } from 'lucide-react'
+import { User, Mail, LogOut, Save, Package, Calendar } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
+import { Order } from '../../types/database'
 
 export function Profile() {
   const { user, signOut, updateProfile } = useAuth()
@@ -10,7 +13,31 @@ export function Profile() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [orders, setOrders] = useState<Order[]>([])
+  const [ordersLoading, setOrdersLoading] = useState(true)
 
+  useEffect(() => {
+    if (user) {
+      fetchOrders()
+    }
+  }, [user])
+
+  const fetchOrders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setOrders(data || [])
+    } catch (err) {
+      console.error('Error fetching orders:', err)
+    } finally {
+      setOrdersLoading(false)
+    }
+  }
   const handleSignOut = async () => {
     await signOut()
     navigate('/auth/login')
@@ -140,6 +167,53 @@ export function Profile() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Orders Section */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <Package className="h-5 w-5 mr-2" />
+              My Orders
+            </h3>
+            
+            {ordersLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+              </div>
+            ) : orders.length === 0 ? (
+              <p className="text-gray-500 text-sm">No orders yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {orders.map((order) => (
+                  <div key={order.id} className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm text-gray-600">
+                          {new Date(order.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        order.status === 'completed' 
+                          ? 'bg-green-100 text-green-800' 
+                          : order.status === 'pending'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {order.status}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-700">
+                      <p className="font-medium">
+                        {order.cart_data.length} item{order.cart_data.length !== 1 ? 's' : ''}
+                      </p>
+                      <p>Total: €{order.total_amount.toFixed(2)}</p>
+                      <p>Delivered to: {order.delivery_email}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
