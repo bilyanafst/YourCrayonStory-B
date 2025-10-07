@@ -114,7 +114,7 @@ export function CartDropdown({ isVisible, onMouseEnter, onMouseLeave, onClose }:
                 className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center space-x-2"
               >
                 <CreditCard className="h-4 w-4" />
-                <span>Go to Checkout</span>
+                <span>Checkout Now</span>
               </button>
             </div>
           </>
