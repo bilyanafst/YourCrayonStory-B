@@ -58,27 +58,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const redirectPath = localStorage.getItem('redirectAfterLogin')
       if (redirectPath) {
         localStorage.removeItem('redirectAfterLogin')
-        // Small delay to ensure auth state is updated
-        setTimeout(() => {
-          window.location.href = redirectPath
-        }, 100)
-      }
-    }
-    
-    return { error }
-  }
-
-  const signOut = async () => {
-    await supabase.auth.signOut()
-  }
-
-  const updateProfile = async (fullName: string) => {
-    const { error } = await supabase.auth.updateUser({
-      data: { full_name: fullName }
-    })
-    return { error }
-  }
-
   const signUp = async (email: string, password: string, fullName: string) => {
     const { error } = await supabase.auth.signUp({
       email,
