@@ -343,14 +343,14 @@ setShowPreview(true)
                       <img
   src={watermarkUrl}
   alt="Watermark"
-  className="w-full h-full object-contain opacity-60"
+  className="w-full h-full object-contain"
   style={{
     position: 'absolute',
     top: 0,
     left: 0,
     width: '100%',
     height: '100%',
-    opacity: 0.6,               // 60% watermark opacity
+    opacity: 0.4,               // 40% watermark opacity - only affects watermark
     pointerEvents: 'none',
     zIndex: 30,                 // Ensure it’s on top
     userSelect: 'none',
@@ -383,7 +383,7 @@ setShowPreview(true)
                       <img
                         src={`data:image/png;base64,${page.image_base64}`}
                         alt={`Page ${page.page_number}`}
-                        className="max-w-full max-h-[60%] object-contain select-none"
+                        className="max-w-full max-h-[60%] object-contain select-none opacity-100"
                         onContextMenu={handleContextMenu}
                         draggable={false}
                         style={{ userSelect: 'none' }}
@@ -392,7 +392,7 @@ setShowPreview(true)
                     
                     {/* Story Text */}
                     <div className="relative z-20 text-center mt-auto">
-                      <p className="text-xl text-gray-800 leading-relaxed font-medium px-4">
+                      <p className="text-xl text-gray-800 leading-relaxed font-medium px-4 opacity-100">
                         {page.text}
                       </p>
                     </div>
