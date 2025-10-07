@@ -58,6 +58,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const redirectPath = localStorage.getItem('redirectAfterLogin')
       if (redirectPath) {
         localStorage.removeItem('redirectAfterLogin')
+      }
+    }
+  }
   const signUp = async (email: string, password: string, fullName: string) => {
     const { error } = await supabase.auth.signUp({
       email,
