@@ -17,12 +17,32 @@ export function Checkout() {
   const [loading, setLoading] = useState(false)
   const [billingEmail, setBillingEmail] = useState('')
   const [billingName, setBillingName] = useState('')
+  const [cartLoaded, setCartLoaded] = useState(false)
+
+  useEffect(() => {
+    const checkCart = setTimeout(() => {
+      setCartLoaded(true)
+      if (cartItems.length === 0) {
+        navigate('/')
+      }
+    }, 100)
+    return () => clearTimeout(checkCart)
+  }, [cartItems.length, navigate])
+
+  useEffect(() => {
+    if (user?.email) {
+      setBillingEmail(user.email)
+    }
+    if (user?.user_metadata?.full_name) {
+      setBillingName(user.user_metadata.full_name)
+    }
+  }, [user])
 
   if (!authLoading && !user) {
     return <Navigate to="/auth/login" state={{ from: { pathname: '/checkout' } }} replace />
   }
 
-  if (authLoading) {
+  if (authLoading || !cartLoaded) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center">
         <div className="flex items-center space-x-3">
@@ -32,18 +52,6 @@ export function Checkout() {
       </div>
     )
   }
-
-  useEffect(() => {
-    if (cartItems.length === 0) {
-      navigate('/')
-    }
-    if (user?.email) {
-      setBillingEmail(user.email)
-    }
-    if (user?.user_metadata?.full_name) {
-      setBillingName(user.user_metadata.full_name)
-    }
-  }, [cartItems.length, navigate, user])
 
   useEffect(() => {
     if (user && cartItems.length > 0 && !clientSecret) {
