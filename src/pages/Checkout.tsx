@@ -17,17 +17,6 @@ export function Checkout() {
   const [loading, setLoading] = useState(false)
   const [billingEmail, setBillingEmail] = useState('')
   const [billingName, setBillingName] = useState('')
-  const [cartLoaded, setCartLoaded] = useState(false)
-
-  useEffect(() => {
-    const checkCart = setTimeout(() => {
-      setCartLoaded(true)
-      if (cartItems.length === 0) {
-        navigate('/')
-      }
-    }, 100)
-    return () => clearTimeout(checkCart)
-  }, [cartItems.length, navigate])
 
   useEffect(() => {
     if (user?.email) {
@@ -42,7 +31,7 @@ export function Checkout() {
     return <Navigate to="/auth/login" state={{ from: { pathname: '/checkout' } }} replace />
   }
 
-  if (authLoading || !cartLoaded) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center">
         <div className="flex items-center space-x-3">
@@ -51,6 +40,10 @@ export function Checkout() {
         </div>
       </div>
     )
+  }
+
+  if (cartItems.length === 0) {
+    return <Navigate to="/" replace />
   }
 
   useEffect(() => {
@@ -85,10 +78,6 @@ export function Checkout() {
     } finally {
       setLoading(false)
     }
-  }
-
-  if (cartItems.length === 0) {
-    return null
   }
 
   const appearance = {

@@ -1,21 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { CartItem } from '../types/database'
 
 export function useCart() {
-  const [cartItems, setCartItems] = useState<CartItem[]>([])
-
-  useEffect(() => {
-    // Load cart from localStorage on mount
-    const savedCart = localStorage.getItem('cart')
-    if (savedCart) {
-      try {
-        setCartItems(JSON.parse(savedCart))
-      } catch (error) {
-        console.error('Error parsing cart from localStorage:', error)
-        setCartItems([])
-      }
+  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
+    try {
+      const savedCart = localStorage.getItem('cart')
+      return savedCart ? JSON.parse(savedCart) : []
+    } catch (error) {
+      console.error('Error parsing cart from localStorage:', error)
+      return []
     }
-  }, [])
+  })
 
   const addToCart = (item: CartItem) => {
     const existingIndex = cartItems.findIndex(
