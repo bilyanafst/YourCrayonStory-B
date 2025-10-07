@@ -4,14 +4,20 @@ import { useNavigate } from 'react-router-dom'
 import { ShoppingCart } from 'lucide-react'
 import { useCart } from '../hooks/useCart'
 import { CartDropdown } from './CartDropdown'
+import { useAuth } from '../contexts/AuthContext'
 
 export function CartIcon() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { getItemCount } = useCart()
   const itemCount = getItemCount()
   const [showDropdown, setShowDropdown] = useState(false)
 
   const handleCartClick = () => {
+    if (!user) {
+      // Save checkout intent before redirecting to login
+      localStorage.setItem('redirectAfterLogin', '/checkout')
+    }
     navigate('/checkout')
   }
 

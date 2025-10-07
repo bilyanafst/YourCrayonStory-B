@@ -2,6 +2,7 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { X, ShoppingCart, CreditCard } from 'lucide-react'
 import { useCart } from '../hooks/useCart'
+import { useAuth } from '../contexts/AuthContext'
 
 interface CartDropdownProps {
   isVisible: boolean
@@ -10,9 +11,14 @@ interface CartDropdownProps {
 
 export function CartDropdown({ isVisible, onClose }: CartDropdownProps) {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { cartItems, removeFromCart, getTotalPrice } = useCart()
 
   const handleCheckout = () => {
+    if (!user) {
+      // Save checkout intent before redirecting to login
+      localStorage.setItem('redirectAfterLogin', '/checkout')
+    }
     onClose()
     navigate('/checkout')
   }

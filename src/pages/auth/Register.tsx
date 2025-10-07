@@ -42,9 +42,15 @@ export function Register() {
     } else {
       setSuccess(true)
       setTimeout(() => {
-        // Check if there's a redirect location
-        const from = location.state?.from?.pathname || '/'
-        navigate(from, { replace: true })
+        // Check for redirect intent
+        const redirectPath = localStorage.getItem('redirectAfterLogin')
+        if (redirectPath) {
+          localStorage.removeItem('redirectAfterLogin')
+          navigate(redirectPath, { replace: true })
+        } else {
+          const from = location.state?.from?.pathname || '/'
+          navigate(from, { replace: true })
+        }
       }, 2000)
     }
   }

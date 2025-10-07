@@ -65,6 +65,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
     })
+    
+    // Handle redirect after successful login
+    if (!error) {
+      const redirectPath = localStorage.getItem('redirectAfterLogin')
+      if (redirectPath) {
+        localStorage.removeItem('redirectAfterLogin')
+        // Small delay to ensure auth state is updated
+        setTimeout(() => {
+          window.location.href = redirectPath
+        }, 100)
+      }
+    }
+    
     return { error }
   }
 
@@ -79,6 +92,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error }
   }
 
+  const signUp = async (email: string, password: string, fullName: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+        },
+      },
+    })
+    
+    // Handle redirect after successful signup
+    if (!error) {
+      const redirectPath = localStorage.getItem('redirectAfterLogin')
+      if (redirectPath) {
+        localStorage.removeItem('redirectAfterLogin')
+        // Small delay to ensure auth state is updated
+        setTimeout(() => {
+          window.location.href = redirectPath
+        }, 100)
+      }
+    }
+    
+    return { error }
+  }
   const value = {
     user,
     session,

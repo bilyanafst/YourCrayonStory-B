@@ -27,10 +27,14 @@ export function Login() {
       setError(error.message)
       setLoading(false)
     } else {
-      // Small delay to ensure auth state is updated
-      setTimeout(() => {
+      // Check for redirect intent
+      const redirectPath = localStorage.getItem('redirectAfterLogin')
+      if (redirectPath) {
+        localStorage.removeItem('redirectAfterLogin')
+        navigate(redirectPath, { replace: true })
+      } else {
         navigate(from, { replace: true })
-      }, 100)
+      }
     }
   }
 

@@ -116,6 +116,10 @@ setShowPreview(true)
   }
 
   const handleCheckout = () => {
+    if (!user) {
+      // Save checkout intent before redirecting to login
+      localStorage.setItem('redirectAfterLogin', '/checkout')
+    }
     setShowCartModal(false)
     navigate('/checkout')
   }

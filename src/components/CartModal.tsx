@@ -2,6 +2,7 @@ import React from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { Fragment } from 'react'
 import { ShoppingCart, X, CreditCard, ArrowLeft } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 interface CartModalProps {
   isOpen: boolean
@@ -20,6 +21,16 @@ export function CartModal({
   bookTitle, 
   childName 
 }: CartModalProps) {
+  const { user } = useAuth()
+
+  const handleCheckout = () => {
+    if (!user) {
+      // Save checkout intent before redirecting to login
+      localStorage.setItem('redirectAfterLogin', '/checkout')
+    }
+    onCheckout()
+  }
+
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -79,7 +90,7 @@ export function CartModal({
 
                 <div className="space-y-3">
                   <button
-                    onClick={onCheckout}
+                    onClick={handleCheckout}
                     className="w-full flex items-center justify-center px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
                   >
                     <CreditCard className="h-4 w-4 mr-2" />
