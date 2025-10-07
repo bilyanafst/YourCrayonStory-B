@@ -22,9 +22,10 @@ export function Home() {
     try {
       const { data, error } = await supabase
         .from('story_templates')
-        .select('*')
+        .select('id, slug, title, description, cover_image_url, price_eur, tags, created_at')
         .eq('is_published', true)
         .order('created_at', { ascending: false })
+        .limit(20)
 
       if (error) throw error
       setTemplates(data || [])
