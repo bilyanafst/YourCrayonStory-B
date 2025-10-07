@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { StoryTemplate } from '../types/database'
 import { StoryCard } from '../components/StoryCard'
+import { SkeletonCard } from '../components/SkeletonCard'
 import { CartIcon } from '../components/CartIcon'
 
 export function Home() {
@@ -108,13 +109,6 @@ export function Home() {
           </p>
         </div>
 
-        {loading && (
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-            <span className="ml-2 text-gray-600">Loading story templates...</span>
-          </div>
-        )}
-
         {error && (
           <div className="text-center py-12">
             <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg inline-block">
@@ -123,17 +117,23 @@ export function Home() {
           </div>
         )}
 
-        {!loading && !error && templates.length === 0 && (
+        {!error && templates.length === 0 && !loading && (
           <div className="text-center py-12">
             <p className="text-gray-600 text-lg">No story templates available at the moment.</p>
           </div>
         )}
 
-        {!loading && !error && templates.length > 0 && (
+        {!error && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {templates.map((template) => (
-              <StoryCard key={template.id} template={template} />
-            ))}
+            {loading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <SkeletonCard key={i} />
+              ))
+            ) : (
+              templates.map((template) => (
+                <StoryCard key={template.id} template={template} />
+              ))
+            )}
           </div>
         )}
       </main>
