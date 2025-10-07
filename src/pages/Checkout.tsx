@@ -1,23 +1,27 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
-import { ArrowLeft, CreditCard, Loader2, Trash2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Trash2 } from 'lucide-react'
+import { loadStripe } from '@stripe/stripe-js'
+import { Elements } from '@stripe/react-stripe-js'
 import { useCart } from '../hooks/useCart'
 import { useAuth } from '../contexts/AuthContext'
-import toast from 'react-hot-toast'
+import { CheckoutForm } from '../components/CheckoutForm'
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '')
 
 export function Checkout() {
   const navigate = useNavigate()
   const { user, loading: authLoading } = useAuth()
-  const { cartItems, removeFromCart, getTotalPrice, clearCart } = useCart()
+  const { cartItems, removeFromCart, getTotalPrice } = useCart()
+  const [clientSecret, setClientSecret] = useState('')
   const [loading, setLoading] = useState(false)
-  const [deliveryEmail, setDeliveryEmail] = useState('')
+  const [billingEmail, setBillingEmail] = useState('')
+  const [billingName, setBillingName] = useState('')
 
-  // Redirect to login if not authenticated
   if (!authLoading && !user) {
     return <Navigate to="/auth/login" state={{ from: { pathname: '/checkout' } }} replace />
   }
 
-  // Show loading while checking auth
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center">
@@ -28,30 +32,29 @@ export function Checkout() {
       </div>
     )
   }
+
   useEffect(() => {
     if (cartItems.length === 0) {
       navigate('/')
     }
-    // Prefill with user's email
     if (user?.email) {
-      setDeliveryEmail(user.email)
+      setBillingEmail(user.email)
     }
-  }, [cartItems.length, navigate, user?.email])
+    if (user?.user_metadata?.full_name) {
+      setBillingName(user.user_metadata.full_name)
+    }
+  }, [cartItems.length, navigate, user])
 
-  const handleStripeCheckout = async () => {
+  useEffect(() => {
+    if (user && cartItems.length > 0 && !clientSecret) {
+      createPaymentIntent()
+    }
+  }, [user, cartItems, clientSecret])
+
+  const createPaymentIntent = async () => {
     setLoading(true)
-    
     try {
-      if (!user) {
-        throw new Error('User not authenticated')
-      }
-
-      if (!deliveryEmail.trim()) {
-        throw new Error('Delivery email is required')
-      }
-
-      // Create Stripe checkout session
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-session`, {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-payment-intent`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
@@ -59,26 +62,18 @@ export function Checkout() {
         },
         body: JSON.stringify({
           items: cartItems,
-          userId: user.id,
-          deliveryEmail: deliveryEmail.trim()
+          userId: user?.id,
         })
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create checkout session')
+        throw new Error('Failed to create payment intent')
       }
 
-      const { url } = await response.json()
-      
-      if (url) {
-        // Redirect to Stripe Checkout
-        window.location.href = url
-      } else {
-        throw new Error('No checkout URL received')
-      }
+      const { clientSecret } = await response.json()
+      setClientSecret(clientSecret)
     } catch (error) {
-      console.error('Checkout error:', error)
-      toast.error('Failed to start checkout. Please try again.')
+      console.error('Payment intent error:', error)
     } finally {
       setLoading(false)
     }
@@ -88,11 +83,17 @@ export function Checkout() {
     return null
   }
 
+  const appearance = {
+    theme: 'stripe' as const,
+    variables: {
+      colorPrimary: '#4f46e5',
+    },
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-      {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <button
               onClick={() => navigate('/')}
@@ -102,9 +103,9 @@ export function Checkout() {
               <span>Continue Shopping</span>
             </button>
             <div className="flex items-center space-x-3">
-              <img 
-                src="/YourCrayonStory.png" 
-                alt="Your Crayon Story" 
+              <img
+                src="/YourCrayonStory.png"
+                alt="Your Crayon Story"
                 className="h-8 w-8"
               />
               <span className="font-bold text-gray-900">Your Crayon Story</span>
@@ -113,90 +114,103 @@ export function Checkout() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Your Cart</h1>
-          
-          {/* Delivery Email Section */}
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Delivery Information</h3>
-            <div>
-              <label htmlFor="deliveryEmail" className="block text-sm font-medium text-gray-700 mb-1">
-                Email for PDF delivery
-              </label>
-              <input
-                id="deliveryEmail"
-                type="email"
-                value={deliveryEmail}
-                onChange={(e) => setDeliveryEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Enter email address"
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Your personalized coloring books will be sent to this email address
-              </p>
-            </div>
-          </div>
+      <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Order Summary</h2>
 
-          {/* Cart Items */}
-          <div className="space-y-4 mb-6">
-            {cartItems.map((item, index) => (
-              <div key={index} className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg">
-                {item.coverImage && (
-                  <img
-                    src={item.coverImage}
-                    alt={item.title}
-                    className="w-16 h-16 object-cover rounded-lg"
-                  />
-                )}
-                <div className="flex-1">
-                  <h3 className="font-medium text-gray-900">{item.title}</h3>
-                  <p className="text-sm text-gray-600">
-                    For: <strong>{item.childName}</strong> ({item.gender})
-                  </p>
+            <div className="space-y-4 mb-6">
+              {cartItems.map((item, index) => (
+                <div key={index} className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg">
+                  {item.coverImage && (
+                    <img
+                      src={item.coverImage}
+                      alt={item.title}
+                      className="w-16 h-16 object-cover rounded-lg"
+                    />
+                  )}
+                  <div className="flex-1">
+                    <h3 className="font-medium text-gray-900">{item.title}</h3>
+                    <p className="text-sm text-gray-600">
+                      For: <strong>{item.childName}</strong> ({item.gender})
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-indigo-600">€{item.price.toFixed(2)}</p>
+                    <button
+                      onClick={() => removeFromCart(index)}
+                      className="text-red-500 hover:text-red-700 transition-colors mt-1"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-indigo-600">€{item.price.toFixed(2)}</p>
-                  <button
-                    onClick={() => removeFromCart(index)}
-                    className="text-red-500 hover:text-red-700 transition-colors mt-1"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
+              ))}
+            </div>
+
+            <div className="border-t pt-4">
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-medium text-gray-900">Total:</span>
+                <span className="text-2xl font-bold text-indigo-600">
+                  €{getTotalPrice().toFixed(2)}
+                </span>
               </div>
-            ))}
-          </div>
-
-          {/* Total */}
-          <div className="border-t pt-4 mb-6">
-            <div className="flex justify-between items-center">
-              <span className="text-lg font-medium text-gray-900">Total:</span>
-              <span className="text-2xl font-bold text-indigo-600">
-                €{getTotalPrice().toFixed(2)}
-              </span>
             </div>
           </div>
 
-          {/* Checkout Button */}
-          <button
-            onClick={handleStripeCheckout}
-            disabled={loading || !deliveryEmail.trim()}
-            className="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Processing...</span>
-              </>
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Billing & Payment</h2>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label htmlFor="billingName" className="block text-sm font-medium text-gray-700 mb-1">
+                  Full Name
+                </label>
+                <input
+                  id="billingName"
+                  type="text"
+                  value={billingName}
+                  onChange={(e) => setBillingName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Enter your full name"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="billingEmail" className="block text-sm font-medium text-gray-700 mb-1">
+                  Email for PDF delivery
+                </label>
+                <input
+                  id="billingEmail"
+                  type="email"
+                  value={billingEmail}
+                  onChange={(e) => setBillingEmail(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Enter email address"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Your personalized coloring books will be sent to this email
+                </p>
+              </div>
+            </div>
+
+            {loading || !clientSecret ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+              </div>
             ) : (
-              <>
-                <CreditCard className="h-4 w-4" />
-                <span>Proceed to Payment</span>
-              </>
+              <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
+                <CheckoutForm
+                  billingEmail={billingEmail}
+                  billingName={billingName}
+                  cartItems={cartItems}
+                  totalAmount={getTotalPrice()}
+                />
+              </Elements>
             )}
-          </button>
+          </div>
         </div>
       </div>
     </div>
