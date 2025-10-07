@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { Loader2 } from 'lucide-react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Home } from './pages/Home'
@@ -12,6 +13,17 @@ import { StoryPersonalization } from './pages/StoryPersonalization'
 import { ThankYou } from './pages/ThankYou'
 
 const Checkout = lazy(() => import('./pages/Checkout'))
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+})
 
 function LoadingFallback() {
   return (
@@ -43,11 +55,12 @@ function AuthRedirectHandler() {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <AuthRedirectHandler />
-        <Toaster position="top-right" />
-        <Routes>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <Router>
+          <AuthRedirectHandler />
+          <Toaster position="top-right" />
+          <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
@@ -68,7 +81,8 @@ function App() {
           />
         </Routes>
       </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   )
 }
 

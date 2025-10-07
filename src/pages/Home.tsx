@@ -1,41 +1,15 @@
 import React from 'react'
-import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { User, LogOut, Loader2 } from 'lucide-react'
+import { User, LogOut } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { supabase } from '../lib/supabase'
-import { StoryTemplate } from '../types/database'
+import { useStoryTemplates } from '../hooks/useStoryTemplates'
 import { StoryCard } from '../components/StoryCard'
 import { SkeletonCard } from '../components/SkeletonCard'
 import { CartIcon } from '../components/CartIcon'
 
 export function Home() {
   const { user, signOut } = useAuth()
-  const [templates, setTemplates] = useState<StoryTemplate[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetchTemplates()
-  }, [])
-
-  const fetchTemplates = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('story_templates')
-        .select('id, slug, title, description, cover_image_url, price_eur, tags, created_at')
-        .eq('is_published', true)
-        .order('created_at', { ascending: false })
-        .limit(20)
-
-      if (error) throw error
-      setTemplates(data || [])
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch templates')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { data: templates = [], isLoading, error } = useStoryTemplates()
 
   const handleSignOut = async () => {
     await signOut()
@@ -109,15 +83,15 @@ export function Home() {
           </p>
         </div>
 
-        {error && (
+        {error instanceof Error && (
           <div className="text-center py-12">
             <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg inline-block">
-              {error}
+              {error.message}
             </div>
           </div>
         )}
 
-        {!error && templates.length === 0 && !loading && (
+        {!error && templates.length === 0 && !isLoading && (
           <div className="text-center py-12">
             <p className="text-gray-600 text-lg">No story templates available at the moment.</p>
           </div>
@@ -125,7 +99,7 @@ export function Home() {
 
         {!error && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {loading ? (
+            {isLoading ? (
               Array.from({ length: 6 }).map((_, i) => (
                 <SkeletonCard key={i} />
               ))
