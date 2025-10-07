@@ -5,11 +5,13 @@ import { supabase } from '../lib/supabase'
 import { StoryTemplate, StoryData, CartItem } from '../types/database'
 import { CartModal } from '../components/CartModal'
 import { useCart } from '../hooks/useCart'
+import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
 
 export function StoryPersonalization() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { addToCart } = useCart()
   
   const [template, setTemplate] = useState<StoryTemplate | null>(null)
