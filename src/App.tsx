@@ -5,13 +5,13 @@ import { Loader2 } from 'lucide-react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
-import { Home } from './pages/Home'
-import { Login } from './pages/auth/Login'
-import { Register } from './pages/auth/Register'
-import { Profile } from './pages/auth/Profile'
-import { StoryPersonalization } from './pages/StoryPersonalization'
-import { ThankYou } from './pages/ThankYou'
 
+const Home = lazy(() => import('./pages/Home').then(m => ({ default: m.Home })))
+const Login = lazy(() => import('./pages/auth/Login').then(m => ({ default: m.Login })))
+const Register = lazy(() => import('./pages/auth/Register').then(m => ({ default: m.Register })))
+const Profile = lazy(() => import('./pages/auth/Profile').then(m => ({ default: m.Profile })))
+const StoryPersonalization = lazy(() => import('./pages/StoryPersonalization').then(m => ({ default: m.StoryPersonalization })))
+const ThankYou = lazy(() => import('./pages/ThankYou').then(m => ({ default: m.ThankYou })))
 const Checkout = lazy(() => import('./pages/Checkout'))
 
 const queryClient = new QueryClient({
@@ -60,26 +60,24 @@ function App() {
         <Router>
           <AuthRedirectHandler />
           <Toaster position="top-right" />
+          <Suspense fallback={<LoadingFallback />}>
           <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/auth/login" element={<Login />} />
-          <Route path="/auth/register" element={<Register />} />
-          <Route path="/story/:slug" element={<StoryPersonalization />} />
-          <Route path="/checkout" element={
-            <Suspense fallback={<LoadingFallback />}>
-              <Checkout />
-            </Suspense>
-          } />
-          <Route path="/thank-you" element={<ThankYou />} />
-          <Route
-            path="/auth/profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/auth/login" element={<Login />} />
+            <Route path="/auth/register" element={<Register />} />
+            <Route path="/story/:slug" element={<StoryPersonalization />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/thank-you" element={<ThankYou />} />
+            <Route
+              path="/auth/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Suspense>
       </Router>
       </AuthProvider>
     </QueryClientProvider>
