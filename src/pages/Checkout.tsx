@@ -1,15 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { ArrowLeft, Loader2, Trash2 } from 'lucide-react'
-import { loadStripe } from '@stripe/stripe-js'
+import { loadStripe, Stripe } from '@stripe/stripe-js'
 import { Elements } from '@stripe/react-stripe-js'
 import { useCart } from '../hooks/useCart'
 import { useAuth } from '../contexts/AuthContext'
 import { CheckoutForm } from '../components/CheckoutForm'
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '')
-
-export function Checkout() {
+export default function Checkout() {
+  const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null)
   const navigate = useNavigate()
   const { user, loading: authLoading } = useAuth()
   const { cartItems, removeFromCart, getTotalPrice } = useCart()
@@ -17,6 +16,10 @@ export function Checkout() {
   const [loading, setLoading] = useState(false)
   const [billingEmail, setBillingEmail] = useState('')
   const [billingName, setBillingName] = useState('')
+
+  useEffect(() => {
+    setStripePromise(loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ''))
+  }, [])
 
   useEffect(() => {
     if (user?.email) {
@@ -193,7 +196,7 @@ export function Checkout() {
               </div>
             </div>
 
-            {loading || !clientSecret ? (
+            {loading || !clientSecret || !stripePromise ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
               </div>
