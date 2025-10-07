@@ -313,22 +313,6 @@ setShowPreview(true)
         ) : (
           /* Story Preview */
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => setShowPreview(false)}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span>Back to Personalization</span>
-              </button>
-              <button
-                onClick={handleAddToCart}
-                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
-              >
-                <span>Add to Cart</span>
-              </button>
-            </div>
-
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
                 {template?.title} - {childName}'s Story
@@ -399,6 +383,23 @@ setShowPreview(true)
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Action Buttons at Bottom */}
+            <div className="flex items-center justify-between bg-white rounded-xl shadow-lg p-6">
+              <button
+                onClick={() => setShowPreview(false)}
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors px-4 py-2 rounded-lg hover:bg-gray-50"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back to Personalization</span>
+              </button>
+              <button
+                onClick={handleAddToCart}
+                className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 font-medium"
+              >
+                <span>Add to Cart</span>
+              </button>
             </div>
           </div>
         )}
