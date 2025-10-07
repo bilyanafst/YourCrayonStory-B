@@ -6,21 +6,24 @@ import { useAuth } from '../contexts/AuthContext'
 
 interface CartDropdownProps {
   isVisible: boolean
+  onMouseEnter: () => void
+  onMouseLeave: () => void
   onClose: () => void
 }
 
-export function CartDropdown({ isVisible, onClose }: CartDropdownProps) {
+export function CartDropdown({ isVisible, onMouseEnter, onMouseLeave, onClose }: CartDropdownProps) {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { cartItems, removeFromCart, getTotalPrice } = useCart()
 
   const handleCheckout = () => {
     if (!user) {
-      // Save checkout intent before redirecting to login
       localStorage.setItem('redirectAfterLogin', '/checkout')
+      navigate('/auth/login')
+    } else {
+      navigate('/checkout')
     }
     onClose()
-    navigate('/checkout')
   }
 
   const handleRemoveItem = (index: number) => {
@@ -30,7 +33,11 @@ export function CartDropdown({ isVisible, onClose }: CartDropdownProps) {
   if (!isVisible) return null
 
   return (
-    <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+    <div
+      className="absolute top-full right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
       <div className="p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900 flex items-center">

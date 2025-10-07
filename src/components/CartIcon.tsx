@@ -1,5 +1,4 @@
-import React from 'react'
-import { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ShoppingCart } from 'lucide-react'
 import { useCart } from '../hooks/useCart'
@@ -12,32 +11,46 @@ export function CartIcon() {
   const { getItemCount } = useCart()
   const itemCount = getItemCount()
   const [showDropdown, setShowDropdown] = useState(false)
+  const hideTimeoutRef = useRef<number | null>(null)
 
   const handleCartClick = () => {
     if (!user) {
-      // Save checkout intent before redirecting to login
       localStorage.setItem('redirectAfterLogin', '/checkout')
     }
     navigate('/checkout')
   }
 
   const handleMouseEnter = () => {
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current)
+      hideTimeoutRef.current = null
+    }
     setShowDropdown(true)
   }
 
   const handleMouseLeave = () => {
-    setShowDropdown(false)
+    hideTimeoutRef.current = window.setTimeout(() => {
+      setShowDropdown(false)
+    }, 200)
   }
+
+  useEffect(() => {
+    return () => {
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current)
+      }
+    }
+  }, [])
 
   if (itemCount === 0) return null
 
   return (
-    <div 
+    <div
       className="relative"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <button 
+      <button
         onClick={handleCartClick}
         className="relative p-1 hover:bg-gray-100 rounded-lg transition-colors"
         title="View Cart"
@@ -47,10 +60,12 @@ export function CartIcon() {
           {itemCount}
         </span>
       </button>
-      
-      <CartDropdown 
-        isVisible={showDropdown} 
-        onClose={() => setShowDropdown(false)} 
+
+      <CartDropdown
+        isVisible={showDropdown}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onClose={() => setShowDropdown(false)}
       />
     </div>
   )
