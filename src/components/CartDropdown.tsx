@@ -16,14 +16,19 @@ export function CartDropdown({ isVisible, onMouseEnter, onMouseLeave, onClose }:
   const { user } = useAuth()
   const { cartItems, removeFromCart, getTotalPrice } = useCart()
 
-  const handleCheckout = () => {
-    if (!user) {
-      localStorage.setItem('redirectAfterLogin', '/checkout')
-      navigate('/auth/login')
-    } else {
-      navigate('/checkout')
-    }
+  const handleCheckout = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
     onClose()
+
+    setTimeout(() => {
+      if (!user) {
+        localStorage.setItem('redirectAfterLogin', '/checkout')
+        navigate('/auth/login')
+      } else {
+        navigate('/checkout')
+      }
+    }, 0)
   }
 
   const handleRemoveItem = (index: number) => {
