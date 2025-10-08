@@ -54,10 +54,8 @@ export function StoryPersonalization() {
       if (data) {
         setChildName(data.child_name)
         setGender(data.gender)
-        setStoryData(data.story_data)
-        setShowPreview(true)
         setIsSaved(true)
-        toast.success('Loaded saved story')
+        toast.success('Loaded saved story - click "Personalize Story" to preview')
       }
     } catch (err) {
       console.error('Error loading saved story:', err)
