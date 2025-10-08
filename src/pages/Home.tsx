@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { User, LogOut } from 'lucide-react'
+import { User, LogOut, BookOpen } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useStoryTemplates } from '../hooks/useStoryTemplates'
 import { StoryCard } from '../components/StoryCard'
@@ -38,22 +38,26 @@ export function Home() {
               {user ? (
                 <>
                   <CartIcon />
-                  <span className="text-sm text-gray-600">
-                    Welcome, {user?.user_metadata?.full_name || user?.email}!
-                  </span>
+                  <Link
+                    to="/my-stories"
+                    className="flex items-center space-x-1 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    <span className="hidden sm:inline">My Stories</span>
+                  </Link>
                   <Link
                     to="/auth/profile"
                     className="flex items-center space-x-1 text-sm text-gray-600 hover:text-gray-900 transition-colors"
                   >
                     <User className="h-4 w-4" />
-                    <span>Profile</span>
+                    <span className="hidden sm:inline">Profile</span>
                   </Link>
                   <button
                     onClick={handleSignOut}
                     className="flex items-center space-x-1 text-sm text-gray-600 hover:text-gray-900 transition-colors"
                   >
                     <LogOut className="h-4 w-4" />
-                    <span>Sign Out</span>
+                    <span className="hidden sm:inline">Sign Out</span>
                   </button>
                 </>
               ) : (
@@ -67,7 +71,7 @@ export function Home() {
                   </Link>
                   <Link
                     to="/auth/register"
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
                   >
                     Sign Up
                   </Link>

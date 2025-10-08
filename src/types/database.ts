@@ -42,3 +42,17 @@ export interface Order {
   created_at: string
   updated_at: string
 }
+
+export interface SavedStory {
+  id: string
+  user_id: string
+  template_slug: string
+  title: string
+  child_name: string
+  gender: 'boy' | 'girl'
+  story_data: StoryData
+  cover_image_url: string | null
+  is_purchased: boolean
+  created_at: string
+  updated_at: string
+}

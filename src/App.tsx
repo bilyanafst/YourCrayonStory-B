@@ -13,6 +13,7 @@ const Profile = lazy(() => import('./pages/auth/Profile').then(m => ({ default: 
 const StoryPersonalization = lazy(() => import('./pages/StoryPersonalization').then(m => ({ default: m.StoryPersonalization })))
 const ThankYou = lazy(() => import('./pages/ThankYou').then(m => ({ default: m.ThankYou })))
 const Checkout = lazy(() => import('./pages/Checkout'))
+const MyStories = lazy(() => import('./pages/MyStories').then(m => ({ default: m.MyStories })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,6 +74,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-stories"
+              element={
+                <ProtectedRoute>
+                  <MyStories />
                 </ProtectedRoute>
               }
             />

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, User, Loader2 } from 'lucide-react'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, User, Loader2, Save, BookMarked } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { StoryTemplate, StoryData, CartItem } from '../types/database'
+import { StoryTemplate, StoryData, CartItem, SavedStory } from '../types/database'
 import { CartModal } from '../components/CartModal'
 import { useCart } from '../hooks/useCart'
 import { useAuth } from '../contexts/AuthContext'
@@ -10,10 +10,11 @@ import toast from 'react-hot-toast'
 
 export function StoryPersonalization() {
   const { slug } = useParams<{ slug: string }>()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { user } = useAuth()
   const { addToCart } = useCart()
-  
+
   const [template, setTemplate] = useState<StoryTemplate | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -23,6 +24,9 @@ export function StoryPersonalization() {
   const [loadingStory, setLoadingStory] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [showCartModal, setShowCartModal] = useState(false)
+  const [savedStoryId, setSavedStoryId] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
 
   // Use environment variable for Supabase URL
   const watermarkUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/assets/watermark.png`
@@ -31,7 +35,35 @@ export function StoryPersonalization() {
     if (slug) {
       fetchTemplate()
     }
-  }, [slug])
+    const savedId = searchParams.get('savedId')
+    if (savedId) {
+      setSavedStoryId(savedId)
+      loadSavedStory(savedId)
+    }
+  }, [slug, searchParams])
+
+  const loadSavedStory = async (id: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('saved_stories')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (error) throw error
+      if (data) {
+        setChildName(data.child_name)
+        setGender(data.gender)
+        setStoryData(data.story_data)
+        setShowPreview(true)
+        setIsSaved(true)
+        toast.success('Loaded saved story')
+      }
+    } catch (err) {
+      console.error('Error loading saved story:', err)
+      toast.error('Failed to load saved story')
+    }
+  }
 
   const fetchTemplate = async () => {
     try {
@@ -44,7 +76,7 @@ export function StoryPersonalization() {
 
       if (error) throw error
       if (!data) throw new Error('Story template not found')
-      
+
       setTemplate(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch template')
@@ -98,6 +130,62 @@ setShowPreview(true)
       setError(err instanceof Error ? err.message : 'Failed to load story data')
     } finally {
       setLoadingStory(false)
+    }
+  }
+
+  const handleSaveStory = async () => {
+    if (!template || !childName.trim() || !storyData || !user) {
+      if (!user) {
+        toast.error('Please sign in to save stories')
+        localStorage.setItem('redirectAfterLogin', `/story/${slug}`)
+        navigate('/auth/login')
+      }
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      if (savedStoryId) {
+        const { error } = await supabase
+          .from('saved_stories')
+          .update({
+            child_name: childName.trim(),
+            gender,
+            story_data: storyData,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', savedStoryId)
+
+        if (error) throw error
+        toast.success('Story updated successfully!')
+      } else {
+        const { data, error } = await supabase
+          .from('saved_stories')
+          .insert({
+            user_id: user.id,
+            template_slug: template.slug,
+            title: template.title,
+            child_name: childName.trim(),
+            gender,
+            story_data: storyData,
+            cover_image_url: template.cover_image_url,
+            is_purchased: false,
+          })
+          .select()
+          .single()
+
+        if (error) throw error
+        if (data) {
+          setSavedStoryId(data.id)
+          toast.success('Story saved successfully!')
+        }
+      }
+      setIsSaved(true)
+    } catch (err) {
+      console.error('Error saving story:', err)
+      toast.error('Failed to save story')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -392,20 +480,48 @@ setShowPreview(true)
             </div>
 
             {/* Action Buttons at Bottom */}
-            <div className="flex items-center justify-between bg-white rounded-xl shadow-lg p-6">
-              <button
-                onClick={() => setShowPreview(false)}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors px-4 py-2 rounded-lg hover:bg-gray-50"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span>Back to Personalization</span>
-              </button>
-              <button
-                onClick={handleAddToCart}
-                className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 font-medium"
-              >
-                <span>Add to Cart</span>
-              </button>
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors px-4 py-2 rounded-lg hover:bg-gray-50"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span>Back to Personalization</span>
+                </button>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                {user && (
+                  <button
+                    onClick={handleSaveStory}
+                    disabled={isSaving}
+                    className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : isSaved ? (
+                      <>
+                        <BookMarked className="h-4 w-4" />
+                        <span>Update Saved Story</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" />
+                        <span>Save for Later</span>
+                      </>
+                    )}
+                  </button>
+                )}
+                <button
+                  onClick={handleAddToCart}
+                  className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2 font-medium"
+                >
+                  <span>Add to Cart</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
