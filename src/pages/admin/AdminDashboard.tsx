@@ -22,7 +22,9 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend
+  Legend,
+  BarChart,
+  Bar
 } from 'recharts'
 
 interface MonthlySales {
@@ -30,11 +32,17 @@ interface MonthlySales {
   sales: number
 }
 
+interface TemplatePopularity {
+  title: string
+  purchases: number
+}
+
 export function AdminDashboard() {
   const { user } = useAuth()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [monthlySalesData, setMonthlySalesData] = useState<MonthlySales[]>([])
+  const [templatePopularityData, setTemplatePopularityData] = useState<TemplatePopularity[]>([])
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalOrders: 0,
@@ -84,6 +92,9 @@ export function AdminDashboard() {
 
       const salesByMonth = aggregateSalesByMonth(ordersData || [])
       setMonthlySalesData(salesByMonth)
+
+      const templatePopularity = aggregateTemplatePopularity(ordersData || [])
+      setTemplatePopularityData(templatePopularity)
     } catch (err) {
       console.error('Error fetching dashboard data:', err)
     } finally {
@@ -120,6 +131,36 @@ export function AdminDashboard() {
     }
 
     return sortedMonths
+  }
+
+  const aggregateTemplatePopularity = (orders: Order[]): TemplatePopularity[] => {
+    const templateMap = new Map<string, { title: string; count: number }>()
+
+    orders.forEach((order) => {
+      order.cart_data.forEach((item) => {
+        const existing = templateMap.get(item.slug)
+        if (existing) {
+          templateMap.set(item.slug, {
+            title: existing.title,
+            count: existing.count + 1,
+          })
+        } else {
+          templateMap.set(item.slug, {
+            title: item.title,
+            count: 1,
+          })
+        }
+      })
+    })
+
+    const sortedTemplates = Array.from(templateMap.values())
+      .sort((a, b) => b.count - a.count)
+      .map((item) => ({
+        title: item.title,
+        purchases: item.count,
+      }))
+
+    return sortedTemplates
   }
 
   const statCards = [
@@ -262,6 +303,61 @@ export function AdminDashboard() {
               <div className="text-center">
                 <TrendingUp className="h-16 w-16 mx-auto mb-3 text-gray-300" />
                 <p className="text-sm">No sales data available yet</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center">
+              <BarChart3 className="h-5 w-5 mr-2 text-blue-600" />
+              Top Selling Templates
+            </h2>
+          </div>
+          {templatePopularityData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={350}>
+              <BarChart data={templatePopularityData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis
+                  dataKey="title"
+                  stroke="#6b7280"
+                  style={{ fontSize: '12px' }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={100}
+                />
+                <YAxis
+                  stroke="#6b7280"
+                  style={{ fontSize: '12px' }}
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#fff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                  }}
+                  formatter={(value: number) => [value, 'Purchases']}
+                  labelStyle={{ fontWeight: 'bold', marginBottom: '4px' }}
+                />
+                <Legend
+                  wrapperStyle={{ paddingTop: '20px' }}
+                />
+                <Bar
+                  dataKey="purchases"
+                  fill="#3b82f6"
+                  radius={[8, 8, 0, 0]}
+                  name="Number of Purchases"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[350px] flex items-center justify-center text-gray-400">
+              <div className="text-center">
+                <BarChart3 className="h-16 w-16 mx-auto mb-3 text-gray-300" />
+                <p className="text-sm">No template sales data available yet</p>
               </div>
             </div>
           )}
