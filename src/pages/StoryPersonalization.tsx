@@ -7,6 +7,7 @@ import { CartModal } from '../components/CartModal'
 import { Navbar } from '../components/Navbar'
 import { ChildProfileSelector } from '../components/ChildProfileSelector'
 import { AddChildModal } from '../components/AddChildModal'
+import { ManageChildrenModal } from '../components/ManageChildrenModal'
 import { useCart } from '../hooks/useCart'
 import { useAuth } from '../contexts/AuthContext'
 import { useDebounce } from '../hooks/useDebounce'
@@ -30,7 +31,7 @@ export function StoryPersonalization() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { addToCart } = useCart()
-  const { profiles, selectedProfile, loading: profilesLoading, selectProfile, addProfile } = useChildProfiles()
+  const { profiles, selectedProfile, loading: profilesLoading, selectProfile, addProfile, updateProfile, deleteProfile } = useChildProfiles()
 
   const [template, setTemplate] = useState<StoryTemplate | null>(null)
   const [loading, setLoading] = useState(true)
@@ -43,6 +44,7 @@ export function StoryPersonalization() {
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [showCartModal, setShowCartModal] = useState(false)
   const [showAddChildModal, setShowAddChildModal] = useState(false)
+  const [showManageModal, setShowManageModal] = useState(false)
   const [savedStoryId, setSavedStoryId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
@@ -323,6 +325,7 @@ export function StoryPersonalization() {
                 selectedProfile={selectedProfile}
                 onSelectProfile={selectProfile}
                 onAddChild={() => setShowAddChildModal(true)}
+                onManage={() => setShowManageModal(true)}
                 loading={profilesLoading}
               />
             )}
@@ -619,6 +622,15 @@ export function StoryPersonalization() {
         isOpen={showAddChildModal}
         onClose={() => setShowAddChildModal(false)}
         onAdd={addProfile}
+      />
+
+      {/* Manage Children Modal */}
+      <ManageChildrenModal
+        isOpen={showManageModal}
+        onClose={() => setShowManageModal(false)}
+        profiles={profiles}
+        onUpdate={updateProfile}
+        onDelete={deleteProfile}
       />
     </div>
   )

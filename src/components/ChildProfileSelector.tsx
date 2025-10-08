@@ -1,5 +1,5 @@
 import React from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Settings } from 'lucide-react'
 import { ChildProfile } from '../types/database'
 
 interface ChildProfileSelectorProps {
@@ -7,6 +7,7 @@ interface ChildProfileSelectorProps {
   selectedProfile: ChildProfile | null
   onSelectProfile: (profile: ChildProfile) => void
   onAddChild: () => void
+  onManage?: () => void
   loading?: boolean
 }
 
@@ -15,6 +16,7 @@ export function ChildProfileSelector({
   selectedProfile,
   onSelectProfile,
   onAddChild,
+  onManage,
   loading = false,
 }: ChildProfileSelectorProps) {
   if (loading) {
@@ -29,6 +31,15 @@ export function ChildProfileSelector({
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-gray-700">Select Child</h3>
+        {profiles.length > 0 && onManage && (
+          <button
+            onClick={onManage}
+            className="flex items-center space-x-1 text-xs text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <Settings className="h-4 w-4" />
+            <span>Manage</span>
+          </button>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">
