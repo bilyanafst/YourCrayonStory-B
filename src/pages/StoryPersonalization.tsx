@@ -483,37 +483,10 @@ export function StoryPersonalization() {
                 <>
                   {/* Preview Content */}
                   <div className="flex-1 overflow-auto relative bg-gray-100 p-4">
-                    <div className="min-h-full flex items-center justify-center">
-                      <div className="relative bg-white shadow-xl rounded-lg overflow-visible max-w-md w-full min-h-[600px] p-8">
-                        {/* Watermark - Behind content */}
-                        <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none">
-                          <img
-                            src={watermarkUrl}
-                            alt="Watermark"
-                            className="w-full h-full object-contain"
-                            style={{
-                              opacity: 0.15,
-                              pointerEvents: 'none',
-                              userSelect: 'none',
-                            }}
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.style.display = 'none'
-                              const parent = target.parentElement
-                              if (parent) {
-                                const textWatermark = document.createElement('div')
-                                textWatermark.textContent = 'PREVIEW'
-                                textWatermark.className = 'text-gray-300 text-5xl font-bold opacity-30 select-none absolute inset-0 flex items-center justify-center'
-                                textWatermark.style.userSelect = 'none'
-                                textWatermark.style.transform = 'rotate(-45deg)'
-                                parent.appendChild(textWatermark)
-                              }
-                            }}
-                          />
-                        </div>
-
-                        {/* Page Content - Above watermark */}
-                        <div className="relative z-10 flex flex-col space-y-6">
+                    <div className="min-h-full flex items-center justify-center relative">
+                      <div className="relative bg-white shadow-xl rounded-lg overflow-hidden max-w-md w-full min-h-[600px] p-8">
+                        {/* Page Content */}
+                        <div className="relative flex flex-col space-y-6">
                           {/* Page Number */}
                           <div className="text-center">
                             <span className="text-xs font-medium text-gray-500">
@@ -539,6 +512,35 @@ export function StoryPersonalization() {
                               {personalizedPages[currentPage].text}
                             </p>
                           </div>
+                        </div>
+
+                        {/* Watermark - On top of everything */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
+                          <img
+                            src={watermarkUrl}
+                            alt="Watermark"
+                            className="w-full h-full object-contain"
+                            style={{
+                              opacity: 0.25,
+                              pointerEvents: 'none',
+                              userSelect: 'none',
+                              mixBlendMode: 'multiply',
+                            }}
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement
+                              target.style.display = 'none'
+                              const parent = target.parentElement
+                              if (parent) {
+                                const textWatermark = document.createElement('div')
+                                textWatermark.textContent = 'PREVIEW'
+                                textWatermark.className = 'text-gray-400 text-6xl font-bold opacity-40 select-none absolute inset-0 flex items-center justify-center'
+                                textWatermark.style.userSelect = 'none'
+                                textWatermark.style.transform = 'rotate(-45deg)'
+                                textWatermark.style.mixBlendMode = 'multiply'
+                                parent.appendChild(textWatermark)
+                              }
+                            }}
+                          />
                         </div>
                       </div>
                     </div>
