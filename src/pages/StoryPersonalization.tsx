@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, User, Loader2, Save, BookMarked } from 'lucide-react'
+import { User, Loader2, Save, BookMarked, ArrowLeft } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { StoryTemplate, StoryData, CartItem, SavedStory } from '../types/database'
 import { CartModal } from '../components/CartModal'
+import { Navbar } from '../components/Navbar'
 import { useCart } from '../hooks/useCart'
 import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
@@ -252,28 +253,7 @@ setShowPreview(true)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <button
-              onClick={() => navigate('/')}
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span>Back to Stories</span>
-            </button>
-            <div className="flex items-center space-x-3">
-              <img 
-                src="/YourCrayonStory.png" 
-                alt="Your Crayon Story" 
-                className="h-8 w-8"
-              />
-              <span className="font-bold text-gray-900">Your Crayon Story</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Navbar showSearch={false} />
 
       <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {!showPreview ? (
