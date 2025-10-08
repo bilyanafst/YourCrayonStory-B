@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { AdminRoute } from './components/AdminRoute'
 
 const Home = lazy(() => import('./pages/Home').then(m => ({ default: m.Home })))
 const Login = lazy(() => import('./pages/auth/Login').then(m => ({ default: m.Login })))
@@ -14,6 +15,7 @@ const StoryPersonalization = lazy(() => import('./pages/StoryPersonalization').t
 const ThankYou = lazy(() => import('./pages/ThankYou').then(m => ({ default: m.ThankYou })))
 const Checkout = lazy(() => import('./pages/Checkout'))
 const MyStories = lazy(() => import('./pages/MyStories').then(m => ({ default: m.MyStories })))
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -83,6 +85,14 @@ function App() {
                 <ProtectedRoute>
                   <MyStories />
                 </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/dashboard"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
               }
             />
           </Routes>
