@@ -454,17 +454,17 @@ export function StoryPersonalization() {
               ) : personalizedPages.length > 0 ? (
                 <>
                   {/* Preview Content */}
-                  <div className="flex-1 overflow-hidden relative bg-gray-100 p-4">
-                    <div className="h-full flex items-center justify-center">
-                      <div className="relative bg-white shadow-xl rounded-lg overflow-hidden max-w-md w-full" style={{ aspectRatio: '210/297' }}>
-                        {/* Watermark */}
-                        <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+                  <div className="flex-1 overflow-auto relative bg-gray-100 p-4">
+                    <div className="min-h-full flex items-center justify-center">
+                      <div className="relative bg-white shadow-xl rounded-lg overflow-visible max-w-md w-full min-h-[600px] p-8">
+                        {/* Watermark - Behind content */}
+                        <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none">
                           <img
                             src={watermarkUrl}
                             alt="Watermark"
                             className="w-full h-full object-contain"
                             style={{
-                              opacity: 0.3,
+                              opacity: 0.15,
                               pointerEvents: 'none',
                               userSelect: 'none',
                             }}
@@ -475,7 +475,7 @@ export function StoryPersonalization() {
                               if (parent) {
                                 const textWatermark = document.createElement('div')
                                 textWatermark.textContent = 'PREVIEW'
-                                textWatermark.className = 'text-gray-400 text-6xl font-bold opacity-40 select-none absolute inset-0 flex items-center justify-center'
+                                textWatermark.className = 'text-gray-300 text-5xl font-bold opacity-30 select-none absolute inset-0 flex items-center justify-center'
                                 textWatermark.style.userSelect = 'none'
                                 textWatermark.style.transform = 'rotate(-45deg)'
                                 parent.appendChild(textWatermark)
@@ -484,30 +484,30 @@ export function StoryPersonalization() {
                           />
                         </div>
 
-                        {/* Page Content */}
-                        <div className="relative z-20 p-6 h-full flex flex-col">
+                        {/* Page Content - Above watermark */}
+                        <div className="relative z-10 flex flex-col space-y-6">
                           {/* Page Number */}
-                          <div className="text-center mb-4">
+                          <div className="text-center">
                             <span className="text-xs font-medium text-gray-500">
                               Page {personalizedPages[currentPage].page_number} of {personalizedPages.length}
                             </span>
                           </div>
 
                           {/* Image */}
-                          <div className="flex-1 flex items-center justify-center mb-4">
+                          <div className="flex items-center justify-center">
                             <img
                               src={`data:image/png;base64,${personalizedPages[currentPage].image_base64}`}
                               alt={`Page ${personalizedPages[currentPage].page_number}`}
-                              className="max-w-full max-h-full object-contain select-none"
+                              className="max-w-full h-auto object-contain select-none"
                               onContextMenu={handleContextMenu}
                               draggable={false}
-                              style={{ userSelect: 'none' }}
+                              style={{ userSelect: 'none', maxHeight: '350px' }}
                             />
                           </div>
 
                           {/* Story Text */}
-                          <div className="text-center">
-                            <p className="text-sm sm:text-base text-gray-800 leading-relaxed font-medium">
+                          <div className="text-center px-4">
+                            <p className="text-base text-gray-900 leading-relaxed font-medium">
                               {personalizedPages[currentPage].text}
                             </p>
                           </div>
