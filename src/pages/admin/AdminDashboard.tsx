@@ -49,6 +49,8 @@ export function AdminDashboard() {
     activeUsers: 0,
     storiesCreated: 0,
   })
+  const [conversionRate, setConversionRate] = useState(0)
+  const [abandonmentRate, setAbandonmentRate] = useState(0)
 
   useEffect(() => {
     fetchDashboardData()
@@ -95,6 +97,36 @@ export function AdminDashboard() {
 
       const templatePopularity = aggregateTemplatePopularity(ordersData || [])
       setTemplatePopularityData(templatePopularity)
+
+      const { data: analyticsData } = await supabase
+        .from('analytics_events')
+        .select('event_type, session_id')
+
+      const uniqueVisitors = new Set(
+        (analyticsData || [])
+          .filter((e) => e.event_type === 'page_view')
+          .map((e) => e.session_id)
+      ).size
+
+      const completedOrdersCount = ordersData?.length || 0
+      const totalStoriesCreated = storiesData?.length || 0
+
+      let calculatedConversionRate = 0
+      let calculatedAbandonmentRate = 0
+
+      if (uniqueVisitors > 0) {
+        calculatedConversionRate = (completedOrdersCount / uniqueVisitors) * 100
+      } else if (usersData && usersData.length > 0) {
+        calculatedConversionRate = (completedOrdersCount / usersData.length) * 100
+      }
+
+      if (totalStoriesCreated > 0) {
+        calculatedAbandonmentRate =
+          ((totalStoriesCreated - completedOrdersCount) / totalStoriesCreated) * 100
+      }
+
+      setConversionRate(calculatedConversionRate)
+      setAbandonmentRate(Math.max(0, calculatedAbandonmentRate))
     } catch (err) {
       console.error('Error fetching dashboard data:', err)
     } finally {
@@ -250,6 +282,62 @@ export function AdminDashboard() {
               </div>
             )
           })}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl shadow-sm border-2 border-green-200 p-8 hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <div className="flex items-center space-x-2 mb-2">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                  <h3 className="text-sm font-semibold text-green-900 uppercase tracking-wide">
+                    Conversion Rate
+                  </h3>
+                </div>
+                <p className="text-6xl font-bold text-green-700 mb-2">
+                  {conversionRate.toFixed(1)}%
+                </p>
+                <p className="text-sm text-green-600">
+                  {stats.totalOrders} orders from {stats.activeUsers} visitors
+                </p>
+              </div>
+              <div className="bg-green-500 p-3 rounded-lg">
+                <ShoppingBag className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-green-200">
+              <p className="text-xs text-green-700">
+                Percentage of visitors who completed a purchase
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl shadow-sm border-2 border-orange-200 p-8 hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <div className="flex items-center space-x-2 mb-2">
+                  <Activity className="h-5 w-5 text-orange-600" />
+                  <h3 className="text-sm font-semibold text-orange-900 uppercase tracking-wide">
+                    Cart Abandonment
+                  </h3>
+                </div>
+                <p className="text-6xl font-bold text-orange-700 mb-2">
+                  {abandonmentRate.toFixed(1)}%
+                </p>
+                <p className="text-sm text-orange-600">
+                  {stats.storiesCreated - stats.totalOrders} carts abandoned
+                </p>
+              </div>
+              <div className="bg-orange-500 p-3 rounded-lg">
+                <Package className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-orange-200">
+              <p className="text-xs text-orange-700">
+                Stories created but not purchased
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
