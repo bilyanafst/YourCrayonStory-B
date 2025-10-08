@@ -1,11 +1,14 @@
 import React from 'react'
 import { useStoryTemplates } from '../hooks/useStoryTemplates'
+import { useTemplateRatings } from '../hooks/useTemplateRatings'
 import { StoryCard } from '../components/StoryCard'
 import { SkeletonCard } from '../components/SkeletonCard'
 import { Navbar } from '../components/Navbar'
 
 export function Home() {
   const { data: templates = [], isLoading, error } = useStoryTemplates()
+  const templateSlugs = templates.map((t) => t.slug)
+  const { getRating } = useTemplateRatings(templateSlugs)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
@@ -42,9 +45,17 @@ export function Home() {
                 <SkeletonCard key={i} />
               ))
             ) : (
-              templates.map((template) => (
-                <StoryCard key={template.id} template={template} />
-              ))
+              templates.map((template) => {
+                const rating = getRating(template.slug)
+                return (
+                  <StoryCard
+                    key={template.id}
+                    template={template}
+                    averageRating={rating?.averageRating}
+                    totalReviews={rating?.totalReviews}
+                  />
+                )
+              })
             )}
           </div>
         )}

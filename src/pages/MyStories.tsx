@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, BookOpen, Edit, Trash2, ShoppingCart, Loader2 } from 'lucide-react'
+import { ArrowLeft, BookOpen, Edit, Trash2, ShoppingCart, Loader2, Star, MessageSquare } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { SavedStory, ChildProfile } from '../types/database'
 import toast from 'react-hot-toast'
 import { useCart } from '../hooks/useCart'
+import { ReviewModal } from '../components/ReviewModal'
+
+interface Review {
+  id: string
+  rating: number
+  feedback: string | null
+  template_slug: string
+  child_name: string
+}
 
 export function MyStories() {
   const { user } = useAuth()
@@ -13,12 +22,15 @@ export function MyStories() {
   const { addToCart } = useCart()
   const [stories, setStories] = useState<SavedStory[]>([])
   const [childProfiles, setChildProfiles] = useState<ChildProfile[]>([])
+  const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [reviewModalOpen, setReviewModalOpen] = useState(false)
+  const [selectedStory, setSelectedStory] = useState<SavedStory | null>(null)
 
   useEffect(() => {
     if (user) {
-      Promise.all([fetchSavedStories(), fetchChildProfiles()])
+      Promise.all([fetchSavedStories(), fetchChildProfiles(), fetchReviews()])
     }
   }, [user])
 
@@ -53,6 +65,40 @@ export function MyStories() {
     } catch (error) {
       console.error('Error fetching child profiles:', error)
     }
+  }
+
+  const fetchReviews = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('story_reviews')
+        .select('*')
+        .eq('user_id', user?.id)
+
+      if (error) throw error
+      setReviews(data || [])
+    } catch (error) {
+      console.error('Error fetching reviews:', error)
+    }
+  }
+
+  const getReviewForStory = (templateSlug: string, childName: string) => {
+    return reviews.find(
+      (review) => review.template_slug === templateSlug && review.child_name === childName
+    )
+  }
+
+  const handleOpenReviewModal = (story: SavedStory) => {
+    setSelectedStory(story)
+    setReviewModalOpen(true)
+  }
+
+  const handleCloseReviewModal = () => {
+    setReviewModalOpen(false)
+    setSelectedStory(null)
+  }
+
+  const handleReviewSubmitted = () => {
+    fetchReviews()
   }
 
   const handleDelete = async (id: string) => {
@@ -227,6 +273,8 @@ export function MyStories() {
                         onEdit={handleEdit}
                         onAddToCart={handleAddToCart}
                         onDelete={handleDelete}
+                        onReview={handleOpenReviewModal}
+                        review={getReviewForStory(story.template_slug, story.child_name)}
                         deletingId={deletingId}
                         formatDate={formatDate}
                       />
@@ -253,6 +301,8 @@ export function MyStories() {
                       onEdit={handleEdit}
                       onAddToCart={handleAddToCart}
                       onDelete={handleDelete}
+                      onReview={handleOpenReviewModal}
+                      review={getReviewForStory(story.template_slug, story.child_name)}
                       deletingId={deletingId}
                       formatDate={formatDate}
                     />
@@ -263,6 +313,17 @@ export function MyStories() {
           </div>
         )}
       </div>
+
+      {selectedStory && (
+        <ReviewModal
+          isOpen={reviewModalOpen}
+          onClose={handleCloseReviewModal}
+          templateSlug={selectedStory.template_slug}
+          childName={selectedStory.child_name}
+          existingReview={getReviewForStory(selectedStory.template_slug, selectedStory.child_name) || null}
+          onReviewSubmitted={handleReviewSubmitted}
+        />
+      )}
     </div>
   )
 }
@@ -272,11 +333,13 @@ interface StoryCardProps {
   onEdit: (story: SavedStory) => void
   onAddToCart: (story: SavedStory) => void
   onDelete: (id: string) => void
+  onReview: (story: SavedStory) => void
+  review: Review | undefined
   deletingId: string | null
   formatDate: (dateString: string) => string
 }
 
-function StoryCard({ story, onEdit, onAddToCart, onDelete, deletingId, formatDate }: StoryCardProps) {
+function StoryCard({ story, onEdit, onAddToCart, onDelete, onReview, review, deletingId, formatDate }: StoryCardProps) {
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
       {story.cover_image_url && (
@@ -304,6 +367,29 @@ function StoryCard({ story, onEdit, onAddToCart, onDelete, deletingId, formatDat
           )}
         </div>
 
+        {story.is_purchased && review && (
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center space-x-2 mb-2">
+              <div className="flex items-center">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={`h-4 w-4 ${
+                      star <= review.rating
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : 'fill-none text-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="text-sm font-semibold text-gray-700">Your Review</span>
+            </div>
+            {review.feedback && (
+              <p className="text-sm text-gray-600 line-clamp-2">{review.feedback}</p>
+            )}
+          </div>
+        )}
+
         <div className="flex flex-col space-y-2 mt-4">
           <button
             onClick={() => onEdit(story)}
@@ -320,6 +406,16 @@ function StoryCard({ story, onEdit, onAddToCart, onDelete, deletingId, formatDat
             >
               <ShoppingCart className="h-4 w-4" />
               <span>Add to Cart</span>
+            </button>
+          )}
+
+          {story.is_purchased && (
+            <button
+              onClick={() => onReview(story)}
+              className="w-full flex items-center justify-center space-x-2 bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors"
+            >
+              <Star className="h-4 w-4" />
+              <span>{review ? 'Edit Review' : 'Leave a Review'}</span>
             </button>
           )}
 

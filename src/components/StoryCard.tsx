@@ -1,15 +1,17 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { BookOpen, Tag } from 'lucide-react'
+import { BookOpen, Tag, Star } from 'lucide-react'
 import { StoryTemplate } from '../types/database'
 
 interface StoryCardProps {
   template: StoryTemplate
+  averageRating?: number
+  totalReviews?: number
 }
 
-export function StoryCard({ template }: StoryCardProps) {
+export function StoryCard({ template, averageRating, totalReviews }: StoryCardProps) {
   return (
-    <Link 
+    <Link
       to={`/story/${template.slug}`}
       className="group bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
     >
@@ -25,9 +27,18 @@ export function StoryCard({ template }: StoryCardProps) {
             <BookOpen className="h-16 w-16 text-white" />
           </div>
         )}
+        {averageRating && totalReviews && totalReviews > 0 && (
+          <div className="absolute top-2 right-2 bg-white bg-opacity-95 px-2 py-1 rounded-lg shadow-md flex items-center space-x-1">
+            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+            <span className="text-sm font-bold text-gray-900">
+              {averageRating.toFixed(1)}
+            </span>
+            <span className="text-xs text-gray-600">({totalReviews})</span>
+          </div>
+        )}
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300" />
       </div>
-      
+
       <div className="p-6">
         <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors">
           {template.title}
