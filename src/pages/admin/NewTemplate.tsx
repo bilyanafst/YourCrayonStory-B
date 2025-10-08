@@ -2,12 +2,15 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Navbar } from '../../components/Navbar'
 import { supabase } from '../../lib/supabase'
-import { BookOpen, Upload, Save, ArrowLeft, Loader2 } from 'lucide-react'
+import { BookOpen, Upload, Save, ArrowLeft, Loader2, X, ImageIcon } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export function NewTemplate() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null)
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     slug: '',
     title: '',
@@ -16,15 +19,85 @@ export function NewTemplate() {
     jsonUrlBoy: '',
     jsonUrlGirl: '',
     tags: '',
+    gender: 'unisex',
     priceEur: '3.99',
     isPublished: true,
   })
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file')
+      return
+    }
+
+    const maxSize = 5 * 1024 * 1024
+    if (file.size > maxSize) {
+      toast.error('Image must be less than 5MB')
+      return
+    }
+
+    setCoverImageFile(file)
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setCoverImagePreview(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const removeImage = () => {
+    setCoverImageFile(null)
+    setCoverImagePreview(null)
+    setFormData((prev) => ({ ...prev, coverImageUrl: '' }))
+  }
+
+  const uploadCoverImage = async (): Promise<string | null> => {
+    if (!coverImageFile) return formData.coverImageUrl || null
+
+    setUploadingImage(true)
+    try {
+      const fileExt = coverImageFile.name.split('.').pop()
+      const fileName = `${formData.slug}-${Date.now()}.${fileExt}`
+      const filePath = `covers/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('story-assets')
+        .upload(filePath, coverImageFile)
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('story-assets')
+        .getPublicUrl(filePath)
+
+      return publicUrl
+    } catch (err) {
+      console.error('Error uploading image:', err)
+      toast.error('Failed to upload cover image')
+      return null
+    } finally {
+      setUploadingImage(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
+      let coverImageUrl = formData.coverImageUrl
+
+      if (coverImageFile) {
+        const uploadedUrl = await uploadCoverImage()
+        if (!uploadedUrl) {
+          setLoading(false)
+          return
+        }
+        coverImageUrl = uploadedUrl
+      }
+
       const tagsArray = formData.tags
         .split(',')
         .map((tag) => tag.trim())
@@ -34,7 +107,7 @@ export function NewTemplate() {
         slug: formData.slug,
         title: formData.title,
         description: formData.description || null,
-        cover_image_url: formData.coverImageUrl || null,
+        cover_image_url: coverImageUrl || null,
         json_url_boy: formData.jsonUrlBoy || null,
         json_url_girl: formData.jsonUrlGirl || null,
         tags: tagsArray.length > 0 ? tagsArray : null,
@@ -55,7 +128,7 @@ export function NewTemplate() {
   }
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target
     const checked = (e.target as HTMLInputElement).checked
@@ -104,6 +177,25 @@ export function NewTemplate() {
             <div className="space-y-4">
               <div>
                 <label
+                  htmlFor="title"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  id="title"
+                  name="title"
+                  required
+                  value={formData.title}
+                  onChange={handleChange}
+                  placeholder="Adventure in Space"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label
                   htmlFor="slug"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
@@ -126,39 +218,64 @@ export function NewTemplate() {
 
               <div>
                 <label
-                  htmlFor="title"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Title *
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  name="title"
-                  required
-                  value={formData.title}
-                  onChange={handleChange}
-                  placeholder="Adventure in Space"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label
                   htmlFor="description"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Description
+                  Description *
                 </label>
                 <textarea
                   id="description"
                   name="description"
+                  required
                   value={formData.description}
                   onChange={handleChange}
-                  rows={3}
-                  placeholder="A thrilling adventure through the cosmos..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={4}
+                  placeholder="A thrilling adventure through the cosmos where your child becomes the hero..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="gender"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Gender *
+                  </label>
+                  <select
+                    id="gender"
+                    name="gender"
+                    required
+                    value={formData.gender}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                  >
+                    <option value="unisex">Unisex</option>
+                    <option value="boy">Boy</option>
+                    <option value="girl">Girl</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="priceEur"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Price (EUR) *
+                  </label>
+                  <input
+                    type="number"
+                    id="priceEur"
+                    name="priceEur"
+                    required
+                    step="0.01"
+                    min="0"
+                    value={formData.priceEur}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
               </div>
 
               <div>
@@ -181,42 +298,71 @@ export function NewTemplate() {
                   Comma-separated tags for categorization
                 </p>
               </div>
-
-              <div>
-                <label
-                  htmlFor="priceEur"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Price (EUR) *
-                </label>
-                <input
-                  type="number"
-                  id="priceEur"
-                  name="priceEur"
-                  required
-                  step="0.01"
-                  min="0"
-                  value={formData.priceEur}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
             </div>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Upload className="h-5 w-5 mr-2 text-blue-600" />
-              Assets & URLs
+              <ImageIcon className="h-5 w-5 mr-2 text-blue-600" />
+              Cover Image
             </h2>
 
             <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Upload Cover Image
+                </label>
+
+                {coverImagePreview ? (
+                  <div className="relative">
+                    <img
+                      src={coverImagePreview}
+                      alt="Cover preview"
+                      className="w-full h-64 object-cover rounded-lg border-2 border-gray-300"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full shadow-lg transition-colors"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
+                    <input
+                      type="file"
+                      id="coverImage"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="coverImage"
+                      className="cursor-pointer flex flex-col items-center"
+                    >
+                      <Upload className="h-12 w-12 text-gray-400 mb-3" />
+                      <span className="text-sm font-medium text-gray-700 mb-1">
+                        Click to upload cover image
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        PNG, JPG up to 5MB
+                      </span>
+                    </label>
+                  </div>
+                )}
+
+                <p className="text-xs text-gray-500 mt-2">
+                  Or provide a URL below if you prefer
+                </p>
+              </div>
+
               <div>
                 <label
                   htmlFor="coverImageUrl"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Cover Image URL
+                  Cover Image URL (Alternative)
                 </label>
                 <input
                   type="url"
@@ -228,23 +374,36 @@ export function NewTemplate() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
+            </div>
+          </div>
 
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <Upload className="h-5 w-5 mr-2 text-blue-600" />
+              Story JSON URLs
+            </h2>
+
+            <div className="space-y-4">
               <div>
                 <label
                   htmlFor="jsonUrlBoy"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Story JSON URL (Boy Version)
+                  JSON URL (Boy Version) *
                 </label>
                 <input
                   type="url"
                   id="jsonUrlBoy"
                   name="jsonUrlBoy"
+                  required
                   value={formData.jsonUrlBoy}
                   onChange={handleChange}
                   placeholder="https://example.com/story-boy.json"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  URL to the story template JSON file for boys
+                </p>
               </div>
 
               <div>
@@ -252,17 +411,21 @@ export function NewTemplate() {
                   htmlFor="jsonUrlGirl"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Story JSON URL (Girl Version)
+                  JSON URL (Girl Version) *
                 </label>
                 <input
                   type="url"
                   id="jsonUrlGirl"
                   name="jsonUrlGirl"
+                  required
                   value={formData.jsonUrlGirl}
                   onChange={handleChange}
                   placeholder="https://example.com/story-girl.json"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  URL to the story template JSON file for girls
+                </p>
               </div>
             </div>
           </div>
@@ -272,52 +435,71 @@ export function NewTemplate() {
               Publishing Options
             </h2>
 
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="isPublished"
-                name="isPublished"
-                checked={formData.isPublished}
-                onChange={handleChange}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label
-                htmlFor="isPublished"
-                className="ml-2 block text-sm text-gray-700"
-              >
-                Publish template immediately
-              </label>
+            <div className="flex items-start">
+              <div className="flex items-center h-5">
+                <input
+                  type="checkbox"
+                  id="isPublished"
+                  name="isPublished"
+                  checked={formData.isPublished}
+                  onChange={handleChange}
+                  className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                />
+              </div>
+              <div className="ml-3">
+                <label
+                  htmlFor="isPublished"
+                  className="block text-sm font-medium text-gray-700 cursor-pointer"
+                >
+                  Publish template immediately
+                </label>
+                <p className="text-xs text-gray-500 mt-1">
+                  Unpublished templates will not be visible to customers
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Unpublished templates will not be visible to customers
-            </p>
           </div>
 
-          <div className="flex items-center justify-end space-x-4">
-            <button
-              type="button"
-              onClick={() => navigate('/admin/dashboard')}
-              className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>Creating...</span>
-                </>
+          <div className="flex items-center justify-between bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <p className="text-sm text-gray-600">
+              {loading || uploadingImage ? (
+                <span className="flex items-center space-x-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                  <span>
+                    {uploadingImage ? 'Uploading image...' : 'Creating template...'}
+                  </span>
+                </span>
               ) : (
-                <>
-                  <Save className="h-5 w-5" />
-                  <span>Create Template</span>
-                </>
+                'Ready to create template'
               )}
-            </button>
+            </p>
+            <div className="flex items-center space-x-4">
+              <button
+                type="button"
+                onClick={() => navigate('/admin/dashboard')}
+                disabled={loading || uploadingImage}
+                className="px-6 py-3 border-2 border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading || uploadingImage}
+                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading || uploadingImage ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>{uploadingImage ? 'Uploading...' : 'Creating...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-5 w-5" />
+                    <span>Submit</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </form>
       </div>
