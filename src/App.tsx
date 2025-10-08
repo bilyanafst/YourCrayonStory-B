@@ -16,6 +16,7 @@ const ThankYou = lazy(() => import('./pages/ThankYou').then(m => ({ default: m.T
 const Checkout = lazy(() => import('./pages/Checkout'))
 const MyStories = lazy(() => import('./pages/MyStories').then(m => ({ default: m.MyStories })))
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })))
+const NewTemplate = lazy(() => import('./pages/admin/NewTemplate').then(m => ({ default: m.NewTemplate })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -92,6 +93,14 @@ function App() {
               element={
                 <AdminRoute>
                   <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/new-template"
+              element={
+                <AdminRoute>
+                  <NewTemplate />
                 </AdminRoute>
               }
             />

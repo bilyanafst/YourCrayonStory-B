@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { Navbar } from '../../components/Navbar'
+import { useNavigate } from 'react-router-dom'
 import {
   BarChart3,
   Users,
@@ -10,7 +11,8 @@ import {
   BookOpen,
   Package,
   Activity,
-  Loader2
+  Loader2,
+  Plus
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { Order } from '../../types/database'
@@ -39,6 +41,7 @@ interface TemplatePopularity {
 
 export function AdminDashboard() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [monthlySalesData, setMonthlySalesData] = useState<MonthlySales[]>([])
@@ -256,9 +259,18 @@ export function AdminDashboard() {
                 Welcome back, {user?.user_metadata?.full_name || user?.email}
               </p>
             </div>
-            <div className="flex items-center space-x-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-lg">
-              <Activity className="h-5 w-5" />
-              <span className="font-semibold">Admin Access</span>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => navigate('/admin/new-template')}
+                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all"
+              >
+                <Plus className="h-5 w-5" />
+                <span>Add New Template</span>
+              </button>
+              <div className="flex items-center space-x-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-lg">
+                <Activity className="h-5 w-5" />
+                <span className="font-semibold">Admin Access</span>
+              </div>
             </div>
           </div>
         </div>
