@@ -6,6 +6,7 @@ import { useStoryTemplates } from '../hooks/useStoryTemplates'
 import { StoryCard } from '../components/StoryCard'
 import { SkeletonCard } from '../components/SkeletonCard'
 import { CartIcon } from '../components/CartIcon'
+import { SearchBar } from '../components/SearchBar'
 
 export function Home() {
   const { user, signOut } = useAuth()
@@ -19,17 +20,21 @@ export function Home() {
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <img 
-                src="/YourCrayonStory.png" 
-                alt="Your Crayon Story" 
+          <div className="flex justify-between items-center h-16 gap-4">
+            <div className="flex items-center space-x-3 flex-shrink-0">
+              <img
+                src="/YourCrayonStory.png"
+                alt="Your Crayon Story"
                 className="h-10 w-10"
               />
-              <h1 className="text-xl font-bold text-gray-900">Your Crayon Story</h1>
+              <h1 className="text-xl font-bold text-gray-900 hidden sm:block">Your Crayon Story</h1>
             </div>
-            
-            <div className="flex items-center space-x-4">
+
+            <div className="flex-1 max-w-2xl mx-4">
+              <SearchBar />
+            </div>
+
+            <div className="flex items-center space-x-4 flex-shrink-0">
               {user ? (
                 <>
                   <CartIcon />
