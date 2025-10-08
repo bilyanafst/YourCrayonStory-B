@@ -61,6 +61,7 @@ export interface Order {
   is_gift: boolean
   gift_data: Record<string, GiftInfo> | null
   child_profile_id: string | null
+  download_url: string | null
   created_at: string
   updated_at: string
 }

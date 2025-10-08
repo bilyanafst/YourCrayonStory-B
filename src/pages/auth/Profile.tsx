@@ -2,9 +2,10 @@ import React, { useState } from 'react'
 import { useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { User, Mail, LogOut, Save, Package, Calendar } from 'lucide-react'
+import { User, Mail, LogOut, Save, Package } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { Order } from '../../types/database'
+import { Order, ChildProfile } from '../../types/database'
+import { OrderCard } from '../../components/OrderCard'
 
 export function Profile() {
   const { user, signOut, updateProfile } = useAuth()
@@ -15,10 +16,12 @@ export function Profile() {
   const [success, setSuccess] = useState('')
   const [orders, setOrders] = useState<Order[]>([])
   const [ordersLoading, setOrdersLoading] = useState(true)
+  const [childProfiles, setChildProfiles] = useState<ChildProfile[]>([])
 
   useEffect(() => {
     if (user) {
       fetchOrders()
+      fetchChildProfiles()
     }
   }, [user])
 
@@ -37,6 +40,25 @@ export function Profile() {
     } finally {
       setOrdersLoading(false)
     }
+  }
+
+  const fetchChildProfiles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('child_profiles')
+        .select('*')
+        .eq('user_id', user?.id)
+
+      if (error) throw error
+      setChildProfiles(data || [])
+    } catch (err) {
+      console.error('Error fetching child profiles:', err)
+    }
+  }
+
+  const getChildProfile = (childProfileId: string | null) => {
+    if (!childProfileId) return null
+    return childProfiles.find((p) => p.id === childProfileId) || null
   }
   const handleSignOut = async () => {
     await signOut()
@@ -170,47 +192,38 @@ export function Profile() {
           </div>
 
           {/* Orders Section */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <Package className="h-5 w-5 mr-2" />
-              My Orders
+          <div className="p-6 border-t border-gray-200">
+            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+              <Package className="h-6 w-6 mr-2 text-blue-600" />
+              My Orders & Downloads
             </h3>
-            
+
             {ordersLoading ? (
-              <div className="flex justify-center py-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
             ) : orders.length === 0 ? (
-              <p className="text-gray-500 text-sm">No orders yet.</p>
+              <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-600 font-medium mb-2">No purchases yet</p>
+                <p className="text-gray-500 text-sm mb-4">
+                  Browse our stories to get started!
+                </p>
+                <button
+                  onClick={() => navigate('/')}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Browse Stories
+                </button>
+              </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {orders.map((order) => (
-                  <div key={order.id} className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-600">
-                          {new Date(order.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        order.status === 'completed' 
-                          ? 'bg-green-100 text-green-800' 
-                          : order.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {order.status}
-                      </span>
-                    </div>
-                    <div className="text-sm text-gray-700">
-                      <p className="font-medium">
-                        {order.cart_data.length} item{order.cart_data.length !== 1 ? 's' : ''}
-                      </p>
-                      <p>Total: €{order.total_amount.toFixed(2)}</p>
-                      <p>Delivered to: {order.delivery_email}</p>
-                    </div>
-                  </div>
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    childProfile={getChildProfile(order.child_profile_id)}
+                  />
                 ))}
               </div>
             )}
