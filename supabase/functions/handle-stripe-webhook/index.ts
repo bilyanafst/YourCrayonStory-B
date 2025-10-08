@@ -64,8 +64,13 @@ Deno.serve(async (req) => {
         throw new Error('Failed to fetch order details')
       }
 
-      // Trigger PDF generation and email sending
-      await generateAndSendPDFs(order, supabase)
+      // Check if this is a gift order
+      if (order.is_gift && order.gift_data) {
+        await handleGiftOrder(order, supabase)
+      } else {
+        // Trigger PDF generation and email sending for regular orders
+        await generateAndSendPDFs(order, supabase)
+      }
     }
 
     return new Response(JSON.stringify({ received: true }), {
@@ -83,6 +88,131 @@ Deno.serve(async (req) => {
     )
   }
 })
+
+async function handleGiftOrder(order: any, supabase: any) {
+  try {
+    console.log(`Processing gift order ${order.id}`)
+    const cartItems = order.cart_data
+
+    for (const item of cartItems) {
+      const giftInfo = order.gift_data?.[item.slug]
+      if (!giftInfo) {
+        console.error(`No gift data found for item ${item.slug}`)
+        continue
+      }
+
+      // Get story template
+      const { data: template, error: templateError } = await supabase
+        .from('story_templates')
+        .select('*')
+        .eq('slug', item.slug)
+        .single()
+
+      if (templateError || !template) {
+        console.error('Error fetching template:', templateError)
+        continue
+      }
+
+      // Get and personalize story data
+      const jsonUrl = item.gender === 'boy' ? template.json_url_boy : template.json_url_girl
+      if (!jsonUrl) continue
+
+      const response = await fetch(jsonUrl)
+      if (!response.ok) continue
+
+      const storyArray = await response.json()
+
+      // Personalize story pages
+      const personalizedPages = storyArray.map((page: any, index: number) => ({
+        page_number: index + 1,
+        image_base64: page.image.replace(/^data:image\/(png|jpeg);base64,/, ''),
+        text: page.caption
+          .replace(/\{\{name\}\}/gi, item.childName)
+          .replace(/\{name\}/gi, item.childName)
+          .replace(/\[CHILD_NAME\]/gi, item.childName)
+      }))
+
+      const storyData = { pages: personalizedPages }
+
+      // Check if gift already exists (to prevent duplicates)
+      const { data: existingGift } = await supabase
+        .from('gifted_stories')
+        .select('id')
+        .eq('order_id', order.id)
+        .eq('template_slug', item.slug)
+        .maybeSingle()
+
+      if (existingGift) {
+        console.log(`Gift already exists for order ${order.id}, item ${item.slug}`)
+        continue
+      }
+
+      // Create gift record with complete story data
+      const { data: gift, error: giftError } = await supabase
+        .from('gifted_stories')
+        .insert({
+          sender_user_id: order.user_id,
+          order_id: order.id,
+          recipient_email: giftInfo.recipientEmail,
+          recipient_name: giftInfo.recipientName,
+          message: giftInfo.message || null,
+          send_at: giftInfo.sendAt ? new Date(giftInfo.sendAt).toISOString() : new Date().toISOString(),
+          story_data: storyData,
+          template_slug: item.slug,
+          template_title: item.title,
+          child_name: item.childName,
+          gender: item.gender,
+          cover_image_url: item.coverImage,
+          is_sent: false,
+        })
+        .select()
+        .single()
+
+      if (giftError) {
+        console.error('Error creating gift record:', giftError)
+        continue
+      }
+
+      console.log(`Created gift record ${gift.id} for ${giftInfo.recipientEmail}`)
+
+      // If send date is today or in the past, trigger immediate send
+      const sendDate = new Date(giftInfo.sendAt || new Date())
+      const now = new Date()
+
+      if (sendDate <= now) {
+        console.log(`Triggering immediate gift send for ${gift.id}`)
+        try {
+          const supabaseUrl = Deno.env.get('SUPABASE_URL')
+          const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')
+
+          // Call the send-gift-email function
+          const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-gift-email`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ giftId: gift.id }),
+          })
+
+          if (!emailResponse.ok) {
+            console.error('Failed to send gift email:', await emailResponse.text())
+          } else {
+            console.log(`Gift email sent successfully for ${gift.id}`)
+          }
+        } catch (emailError) {
+          console.error('Error calling send-gift-email function:', emailError)
+        }
+      } else {
+        console.log(`Gift ${gift.id} scheduled for ${sendDate.toISOString()}`)
+      }
+    }
+
+    console.log(`Successfully processed gift order ${order.id}`)
+  } catch (error) {
+    console.error('Error processing gift order:', error)
+  }
+}
 
 async function generateAndSendPDFs(order: any, supabase: any) {
   try {
@@ -120,10 +250,11 @@ async function generateAndSendPDFs(order: any, supabase: any) {
           .replace(/\[CHILD_NAME\]/gi, item.childName)
       }))
 
-      // Here you would generate PDF and send email
+      // Here you would generate PDF and send email to order.delivery_email
       // For now, we'll just log the success
       console.log(`Generated PDF for ${item.title} - ${item.childName}`)
-      
+      console.log(`Would send to: ${order.delivery_email}`)
+
       // TODO: Implement actual PDF generation and email sending
       // This could be done using a PDF library like jsPDF or Puppeteer
       // and an email service like SendGrid or AWS SES
