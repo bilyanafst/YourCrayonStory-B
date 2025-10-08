@@ -6,15 +6,18 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../hooks/useCart'
 import toast from 'react-hot-toast'
+import { GiftInfo } from '../types/database'
 
 interface CheckoutFormProps {
   billingEmail: string
   billingName: string
   cartItems: any[]
   totalAmount: number
+  isGift?: boolean
+  giftInfo?: GiftInfo
 }
 
-export function CheckoutForm({ billingEmail, billingName, cartItems, totalAmount }: CheckoutFormProps) {
+export function CheckoutForm({ billingEmail, billingName, cartItems, totalAmount, isGift, giftInfo }: CheckoutFormProps) {
   const stripe = useStripe()
   const elements = useElements()
   const navigate = useNavigate()
@@ -33,6 +36,13 @@ export function CheckoutForm({ billingEmail, billingName, cartItems, totalAmount
     if (!billingName.trim() || !billingEmail.trim()) {
       toast.error('Please fill in all billing information')
       return
+    }
+
+    if (isGift && giftInfo) {
+      if (!giftInfo.recipientName.trim() || !giftInfo.recipientEmail.trim()) {
+        toast.error('Please fill in all gift recipient information')
+        return
+      }
     }
 
     setLoading(true)
@@ -57,22 +67,44 @@ export function CheckoutForm({ billingEmail, billingName, cartItems, totalAmount
       }
 
       if (paymentIntent && paymentIntent.status === 'succeeded') {
-        const { error: dbError } = await supabase.from('orders').insert({
+        const { data: orderData, error: dbError } = await supabase.from('orders').insert({
           user_id: user?.id,
-          cart_items: cartItems,
+          cart_data: cartItems,
+          delivery_email: billingEmail.trim(),
           total_amount: totalAmount,
-          billing_email: billingEmail.trim(),
-          billing_name: billingName.trim(),
-          stripe_payment_intent_id: paymentIntent.id,
-          payment_status: 'completed',
-        })
+          status: 'completed',
+          is_gift: isGift || false,
+          gift_data: isGift && giftInfo ? { [cartItems[0]?.slug]: giftInfo } : null,
+        }).select().single()
 
         if (dbError) {
           console.error('Failed to save order:', dbError)
         }
 
+        if (isGift && giftInfo && orderData) {
+          const { error: giftError } = await supabase.from('gifted_stories').insert({
+            sender_user_id: user?.id,
+            order_id: orderData.id,
+            recipient_email: giftInfo.recipientEmail.trim(),
+            recipient_name: giftInfo.recipientName.trim(),
+            message: giftInfo.message?.trim() || null,
+            send_at: giftInfo.sendAt ? new Date(giftInfo.sendAt).toISOString() : new Date().toISOString(),
+            story_data: { pages: [] },
+            template_slug: cartItems[0]?.slug,
+            template_title: cartItems[0]?.title,
+            child_name: cartItems[0]?.childName,
+            gender: cartItems[0]?.gender,
+            cover_image_url: cartItems[0]?.coverImage,
+            is_sent: false,
+          })
+
+          if (giftError) {
+            console.error('Failed to save gift:', giftError)
+          }
+        }
+
         clearCart()
-        navigate('/thank-you', { state: { childName: cartItems[0]?.childName } })
+        navigate('/thank-you', { state: { childName: cartItems[0]?.childName, isGift } })
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'Payment failed. Please try again.')

@@ -6,6 +6,8 @@ import { Elements } from '@stripe/react-stripe-js'
 import { useCart } from '../hooks/useCart'
 import { useAuth } from '../contexts/AuthContext'
 import { CheckoutForm } from '../components/CheckoutForm'
+import { GiftOptionsForm } from '../components/GiftOptionsForm'
+import { GiftInfo } from '../types/database'
 
 export default function Checkout() {
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null)
@@ -16,6 +18,13 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false)
   const [billingEmail, setBillingEmail] = useState('')
   const [billingName, setBillingName] = useState('')
+  const [isGift, setIsGift] = useState(false)
+  const [giftInfo, setGiftInfo] = useState<GiftInfo>({
+    recipientName: '',
+    recipientEmail: '',
+    message: '',
+    sendAt: new Date().toISOString().split('T')[0],
+  })
 
   useEffect(() => {
     setStripePromise(loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ''))
@@ -158,10 +167,18 @@ export default function Checkout() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Billing & Payment</h2>
+          <div className="space-y-6">
+            <GiftOptionsForm
+              isGift={isGift}
+              onToggleGift={setIsGift}
+              giftInfo={giftInfo}
+              onGiftInfoChange={setGiftInfo}
+            />
 
-            <div className="space-y-4 mb-6">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Billing & Payment</h2>
+
+              <div className="space-y-4 mb-6">
               <div>
                 <label htmlFor="billingName" className="block text-sm font-medium text-gray-700 mb-1">
                   Full Name
@@ -193,23 +210,26 @@ export default function Checkout() {
                 <p className="text-xs text-gray-500 mt-1">
                   Your personalized coloring books will be sent to this email
                 </p>
+                </div>
               </div>
-            </div>
 
-            {loading || !clientSecret || !stripePromise ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-              </div>
-            ) : (
-              <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
-                <CheckoutForm
-                  billingEmail={billingEmail}
-                  billingName={billingName}
-                  cartItems={cartItems}
-                  totalAmount={getTotalPrice()}
-                />
-              </Elements>
-            )}
+              {loading || !clientSecret || !stripePromise ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+                </div>
+              ) : (
+                <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
+                  <CheckoutForm
+                    billingEmail={billingEmail}
+                    billingName={billingName}
+                    cartItems={cartItems}
+                    totalAmount={getTotalPrice()}
+                    isGift={isGift}
+                    giftInfo={isGift ? giftInfo : undefined}
+                  />
+                </Elements>
+              )}
+            </div>
           </div>
         </div>
       </div>

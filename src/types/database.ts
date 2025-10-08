@@ -22,6 +22,13 @@ export interface StoryData {
   pages: StoryPage[]
 }
 
+export interface GiftInfo {
+  recipientName: string
+  recipientEmail: string
+  message?: string
+  sendAt?: string
+}
+
 export interface CartItem {
   slug: string
   title: string
@@ -29,6 +36,7 @@ export interface CartItem {
   gender: 'boy' | 'girl'
   price: number
   coverImage: string | null
+  giftInfo?: GiftInfo
 }
 
 export interface Order {
@@ -39,6 +47,8 @@ export interface Order {
   delivery_email: string
   total_amount: number
   status: 'pending' | 'completed' | 'failed'
+  is_gift: boolean
+  gift_data: Record<string, GiftInfo> | null
   created_at: string
   updated_at: string
 }
@@ -53,6 +63,27 @@ export interface SavedStory {
   story_data: StoryData
   cover_image_url: string | null
   is_purchased: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface GiftedStory {
+  id: string
+  sender_user_id: string
+  order_id: string | null
+  recipient_email: string
+  recipient_name: string
+  message: string | null
+  send_at: string
+  story_data: StoryData
+  template_slug: string
+  template_title: string
+  child_name: string
+  gender: 'boy' | 'girl'
+  cover_image_url: string | null
+  pdf_url: string | null
+  is_sent: boolean
+  sent_at: string | null
   created_at: string
   updated_at: string
 }
