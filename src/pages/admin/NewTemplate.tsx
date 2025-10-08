@@ -9,8 +9,7 @@ export function NewTemplate() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
-  const [coverImageFile, setCoverImageFile] = useState<File | null>(null)
-  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null)
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>('')
   const [formData, setFormData] = useState({
     slug: '',
     title: '',
@@ -39,47 +38,49 @@ export function NewTemplate() {
       return
     }
 
-    setCoverImageFile(file)
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setCoverImagePreview(reader.result as string)
-    }
-    reader.readAsDataURL(file)
-  }
-
-  const removeImage = () => {
-    setCoverImageFile(null)
-    setCoverImagePreview(null)
-    setFormData((prev) => ({ ...prev, coverImageUrl: '' }))
-  }
-
-  const uploadCoverImage = async (): Promise<string | null> => {
-    if (!coverImageFile) return formData.coverImageUrl || null
-
     setUploadingImage(true)
+
     try {
-      const fileExt = coverImageFile.name.split('.').pop()
-      const fileName = `${formData.slug}-${Date.now()}.${fileExt}`
-      const filePath = `covers/${fileName}`
+      const fileExt = file.name.split('.').pop()
+      const uniqueFileName = `${crypto.randomUUID()}.${fileExt}`
+      const filePath = uniqueFileName
 
       const { error: uploadError } = await supabase.storage
-        .from('story-assets')
-        .upload(filePath, coverImageFile)
+        .from('template-covers')
+        .upload(filePath, file)
 
       if (uploadError) throw uploadError
 
       const { data: { publicUrl } } = supabase.storage
-        .from('story-assets')
+        .from('template-covers')
         .getPublicUrl(filePath)
 
-      return publicUrl
+      setUploadedImageUrl(publicUrl)
+      toast.success('Image uploaded successfully!')
     } catch (err) {
       console.error('Error uploading image:', err)
       toast.error('Failed to upload cover image')
-      return null
+      setUploadedImageUrl('')
     } finally {
       setUploadingImage(false)
     }
+  }
+
+  const removeImage = async () => {
+    if (uploadedImageUrl) {
+      try {
+        const fileName = uploadedImageUrl.split('/').pop()
+        if (fileName) {
+          await supabase.storage
+            .from('template-covers')
+            .remove([fileName])
+        }
+      } catch (err) {
+        console.error('Error removing image:', err)
+      }
+    }
+    setUploadedImageUrl('')
+    setFormData((prev) => ({ ...prev, coverImageUrl: '' }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,16 +88,7 @@ export function NewTemplate() {
     setLoading(true)
 
     try {
-      let coverImageUrl = formData.coverImageUrl
-
-      if (coverImageFile) {
-        const uploadedUrl = await uploadCoverImage()
-        if (!uploadedUrl) {
-          setLoading(false)
-          return
-        }
-        coverImageUrl = uploadedUrl
-      }
+      const coverImageUrl = uploadedImageUrl || formData.coverImageUrl || null
 
       const tagsArray = formData.tags
         .split(',')
@@ -107,7 +99,7 @@ export function NewTemplate() {
         slug: formData.slug,
         title: formData.title,
         description: formData.description || null,
-        cover_image_url: coverImageUrl || null,
+        cover_image_url: coverImageUrl,
         json_url_boy: formData.jsonUrlBoy || null,
         json_url_girl: formData.jsonUrlGirl || null,
         tags: tagsArray.length > 0 ? tagsArray : null,
@@ -313,13 +305,24 @@ export function NewTemplate() {
                   Upload Cover Image
                 </label>
 
-                {coverImagePreview ? (
+                {uploadingImage ? (
+                  <div className="border-2 border-blue-300 bg-blue-50 rounded-lg p-8 flex flex-col items-center justify-center">
+                    <Loader2 className="h-12 w-12 text-blue-600 animate-spin mb-3" />
+                    <span className="text-sm font-medium text-blue-700">
+                      Uploading image...
+                    </span>
+                  </div>
+                ) : uploadedImageUrl ? (
                   <div className="relative">
                     <img
-                      src={coverImagePreview}
+                      src={uploadedImageUrl}
                       alt="Cover preview"
-                      className="w-full h-64 object-cover rounded-lg border-2 border-gray-300"
+                      className="w-full h-64 object-cover rounded-lg border-2 border-green-300"
                     />
+                    <div className="absolute top-2 left-2 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center space-x-1">
+                      <span>✓</span>
+                      <span>Uploaded</span>
+                    </div>
                     <button
                       type="button"
                       onClick={removeImage}
