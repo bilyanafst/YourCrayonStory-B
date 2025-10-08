@@ -12,10 +12,15 @@ import {
   Package,
   Activity,
   Loader2,
-  Plus
+  Plus,
+  Edit,
+  Trash2,
+  CheckCircle,
+  XCircle
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { Order } from '../../types/database'
+import toast from 'react-hot-toast'
 import {
   LineChart,
   Line,
@@ -39,6 +44,21 @@ interface TemplatePopularity {
   purchases: number
 }
 
+interface StoryTemplate {
+  id: string
+  slug: string
+  title: string
+  description: string
+  cover_image_url: string | null
+  price_eur: number
+  gender: string
+  tags: string[] | null
+  is_published: boolean
+  json_url_boy: string | null
+  json_url_girl: string | null
+  created_at: string
+}
+
 export function AdminDashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -46,6 +66,10 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [monthlySalesData, setMonthlySalesData] = useState<MonthlySales[]>([])
   const [templatePopularityData, setTemplatePopularityData] = useState<TemplatePopularity[]>([])
+  const [templates, setTemplates] = useState<StoryTemplate[]>([])
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [templateToDelete, setTemplateToDelete] = useState<StoryTemplate | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalOrders: 0,
@@ -81,7 +105,15 @@ export function AdminDashboard() {
 
       if (storiesError) throw storiesError
 
+      const { data: templatesData, error: templatesError } = await supabase
+        .from('story_templates')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (templatesError) throw templatesError
+
       setOrders(ordersData || [])
+      setTemplates(templatesData || [])
 
       const totalRevenue = (ordersData || []).reduce(
         (sum, order) => sum + Number(order.total_amount),
@@ -196,6 +228,40 @@ export function AdminDashboard() {
       }))
 
     return sortedTemplates
+  }
+
+  const handleDeleteClick = (template: StoryTemplate) => {
+    setTemplateToDelete(template)
+    setDeleteModalOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!templateToDelete) return
+
+    setDeleting(true)
+    try {
+      const { error } = await supabase
+        .from('story_templates')
+        .delete()
+        .eq('id', templateToDelete.id)
+
+      if (error) throw error
+
+      setTemplates(templates.filter(t => t.id !== templateToDelete.id))
+      toast.success('Template deleted')
+      setDeleteModalOpen(false)
+      setTemplateToDelete(null)
+    } catch (err) {
+      console.error('Error deleting template:', err)
+      toast.error('Failed to delete template')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleDeleteCancel = () => {
+    setDeleteModalOpen(false)
+    setTemplateToDelete(null)
   }
 
   const statCards = [
@@ -546,7 +612,171 @@ export function AdminDashboard() {
             </div>
           </div>
         </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900 flex items-center">
+              <BookOpen className="h-6 w-6 mr-2 text-blue-600" />
+              Story Templates
+            </h2>
+            <span className="text-sm text-gray-600">
+              {templates.length} {templates.length === 1 ? 'template' : 'templates'}
+            </span>
+          </div>
+
+          {templates.length === 0 ? (
+            <div className="text-center py-12">
+              <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 mb-4">No templates yet</p>
+              <button
+                onClick={() => navigate('/admin/new-template')}
+                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all mx-auto"
+              >
+                <Plus className="h-5 w-5" />
+                <span>Add Your First Template</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {templates.map((template) => (
+                <div
+                  key={template.id}
+                  className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden hover:border-blue-300 hover:shadow-lg transition-all"
+                >
+                  <div className="relative h-48 bg-gray-100">
+                    {template.cover_image_url ? (
+                      <img
+                        src={template.cover_image_url}
+                        alt={template.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen className="h-16 w-16 text-gray-300" />
+                      </div>
+                    )}
+                    <div className="absolute top-2 right-2 flex items-center space-x-2">
+                      {template.is_published ? (
+                        <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center space-x-1">
+                          <CheckCircle className="h-3 w-3" />
+                          <span>Published</span>
+                        </span>
+                      ) : (
+                        <span className="bg-gray-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center space-x-1">
+                          <XCircle className="h-3 w-3" />
+                          <span>Draft</span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="absolute top-2 left-2">
+                      <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-semibold capitalize">
+                        {template.gender}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-4">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+                      {template.title}
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                      {template.description}
+                    </p>
+
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-1">
+                        <DollarSign className="h-4 w-4 text-green-600" />
+                        <span className="text-xl font-bold text-gray-900">
+                          €{template.price_eur.toFixed(2)}
+                        </span>
+                      </div>
+                      {template.tags && template.tags.length > 0 && (
+                        <div className="flex items-center space-x-1">
+                          {template.tags.slice(0, 2).map((tag, idx) => (
+                            <span
+                              key={idx}
+                              className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                          {template.tags.length > 2 && (
+                            <span className="text-xs text-gray-500">
+                              +{template.tags.length - 2}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => navigate(`/admin/edit-template/${template.slug}`)}
+                        className="flex-1 flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                      >
+                        <Edit className="h-4 w-4" />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(template)}
+                        className="flex items-center justify-center bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+
+      {deleteModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="bg-red-100 p-3 rounded-full">
+                <Trash2 className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">
+                Delete Template
+              </h3>
+            </div>
+
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete "{templateToDelete?.title}"? This action cannot be undone.
+            </p>
+
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={handleDeleteCancel}
+                disabled={deleting}
+                className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="flex-1 flex items-center justify-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-5 w-5" />
+                    <span>Delete</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
