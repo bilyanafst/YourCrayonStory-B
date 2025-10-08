@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, BookOpen, Edit, Trash2, ShoppingCart, Loader2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { SavedStory } from '../types/database'
+import { SavedStory, ChildProfile } from '../types/database'
 import toast from 'react-hot-toast'
 import { useCart } from '../hooks/useCart'
 
@@ -12,12 +12,13 @@ export function MyStories() {
   const navigate = useNavigate()
   const { addToCart } = useCart()
   const [stories, setStories] = useState<SavedStory[]>([])
+  const [childProfiles, setChildProfiles] = useState<ChildProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (user) {
-      fetchSavedStories()
+      Promise.all([fetchSavedStories(), fetchChildProfiles()])
     }
   }, [user])
 
@@ -36,6 +37,21 @@ export function MyStories() {
       toast.error('Failed to load your stories')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchChildProfiles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('child_profiles')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: true })
+
+      if (error) throw error
+      setChildProfiles(data || [])
+    } catch (error) {
+      console.error('Error fetching child profiles:', error)
     }
   }
 
@@ -75,6 +91,7 @@ export function MyStories() {
       gender: story.gender,
       price: 3.99,
       coverImage: story.cover_image_url,
+      childProfileId: story.child_profile_id || undefined,
     })
     toast.success('Added to cart!')
   }
@@ -86,6 +103,28 @@ export function MyStories() {
       month: 'short',
       day: 'numeric',
     })
+  }
+
+  const groupStoriesByChild = () => {
+    const grouped: Record<string, SavedStory[]> = {}
+    const unassigned: SavedStory[] = []
+
+    stories.forEach((story) => {
+      if (story.child_profile_id) {
+        if (!grouped[story.child_profile_id]) {
+          grouped[story.child_profile_id] = []
+        }
+        grouped[story.child_profile_id].push(story)
+      } else {
+        unassigned.push(story)
+      }
+    })
+
+    return { grouped, unassigned }
+  }
+
+  const getChildProfile = (profileId: string) => {
+    return childProfiles.find((p) => p.id === profileId)
   }
 
   if (!user) {
@@ -104,6 +143,8 @@ export function MyStories() {
       </div>
     )
   }
+
+  const { grouped, unassigned } = groupStoriesByChild()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
@@ -162,81 +203,144 @@ export function MyStories() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {stories.map((story) => (
-              <div
-                key={story.id}
-                className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
-              >
-                {story.cover_image_url && (
-                  <img
-                    src={story.cover_image_url}
-                    alt={story.title}
-                    className="w-full h-48 object-cover"
-                  />
-                )}
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-1">
-                        {story.title}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        For: <span className="font-medium">{story.child_name}</span>
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {story.gender === 'boy' ? '👦 Boy' : '👧 Girl'} • Saved {formatDate(story.created_at)}
-                      </p>
-                    </div>
-                    {story.is_purchased && (
-                      <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">
-                        Purchased
-                      </span>
-                    )}
+          <div className="space-y-12">
+            {/* Stories grouped by child profiles */}
+            {Object.entries(grouped).map(([profileId, childStories]) => {
+              const profile = getChildProfile(profileId)
+              if (!profile) return null
+
+              return (
+                <div key={profileId} className="space-y-4">
+                  <div className="flex items-center space-x-3 pb-3 border-b-2 border-gray-200">
+                    <span className="text-3xl">{profile.avatar}</span>
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      {profile.name}'s Stories
+                    </h2>
+                    <span className="text-sm text-gray-500">({childStories.length})</span>
                   </div>
 
-                  <div className="flex flex-col space-y-2 mt-4">
-                    <button
-                      onClick={() => handleEdit(story)}
-                      className="w-full flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      <Edit className="h-4 w-4" />
-                      <span>Edit & Preview</span>
-                    </button>
-
-                    {!story.is_purchased && (
-                      <button
-                        onClick={() => handleAddToCart(story)}
-                        className="w-full flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-                      >
-                        <ShoppingCart className="h-4 w-4" />
-                        <span>Add to Cart</span>
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => handleDelete(story.id)}
-                      disabled={deletingId === story.id}
-                      className="w-full flex items-center justify-center space-x-2 border border-red-300 text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {deletingId === story.id ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>Deleting...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Trash2 className="h-4 w-4" />
-                          <span>Delete</span>
-                        </>
-                      )}
-                    </button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {childStories.map((story) => (
+                      <StoryCard
+                        key={story.id}
+                        story={story}
+                        onEdit={handleEdit}
+                        onAddToCart={handleAddToCart}
+                        onDelete={handleDelete}
+                        deletingId={deletingId}
+                        formatDate={formatDate}
+                      />
+                    ))}
                   </div>
                 </div>
+              )
+            })}
+
+            {/* Unassigned stories */}
+            {unassigned.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3 pb-3 border-b-2 border-gray-200">
+                  <span className="text-3xl">📚</span>
+                  <h2 className="text-2xl font-bold text-gray-900">Other Stories</h2>
+                  <span className="text-sm text-gray-500">({unassigned.length})</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {unassigned.map((story) => (
+                    <StoryCard
+                      key={story.id}
+                      story={story}
+                      onEdit={handleEdit}
+                      onAddToCart={handleAddToCart}
+                      onDelete={handleDelete}
+                      deletingId={deletingId}
+                      formatDate={formatDate}
+                    />
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+interface StoryCardProps {
+  story: SavedStory
+  onEdit: (story: SavedStory) => void
+  onAddToCart: (story: SavedStory) => void
+  onDelete: (id: string) => void
+  deletingId: string | null
+  formatDate: (dateString: string) => string
+}
+
+function StoryCard({ story, onEdit, onAddToCart, onDelete, deletingId, formatDate }: StoryCardProps) {
+  return (
+    <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+      {story.cover_image_url && (
+        <img
+          src={story.cover_image_url}
+          alt={story.title}
+          className="w-full h-48 object-cover"
+        />
+      )}
+      <div className="p-6">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">{story.title}</h3>
+            <p className="text-sm text-gray-600">
+              For: <span className="font-medium">{story.child_name}</span>
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              {story.gender === 'boy' ? '👦 Boy' : '👧 Girl'} • Saved {formatDate(story.created_at)}
+            </p>
+          </div>
+          {story.is_purchased && (
+            <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">
+              Purchased
+            </span>
+          )}
+        </div>
+
+        <div className="flex flex-col space-y-2 mt-4">
+          <button
+            onClick={() => onEdit(story)}
+            className="w-full flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Edit className="h-4 w-4" />
+            <span>Edit & Preview</span>
+          </button>
+
+          {!story.is_purchased && (
+            <button
+              onClick={() => onAddToCart(story)}
+              className="w-full flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              <span>Add to Cart</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => onDelete(story.id)}
+            disabled={deletingId === story.id}
+            className="w-full flex items-center justify-center space-x-2 border border-red-300 text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {deletingId === story.id ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Deleting...</span>
+              </>
+            ) : (
+              <>
+                <Trash2 className="h-4 w-4" />
+                <span>Delete</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   )

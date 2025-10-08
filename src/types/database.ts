@@ -29,6 +29,16 @@ export interface GiftInfo {
   sendAt?: string
 }
 
+export interface ChildProfile {
+  id: string
+  user_id: string
+  name: string
+  gender: 'boy' | 'girl'
+  avatar: string
+  created_at: string
+  updated_at: string
+}
+
 export interface CartItem {
   slug: string
   title: string
@@ -36,6 +46,7 @@ export interface CartItem {
   gender: 'boy' | 'girl'
   price: number
   coverImage: string | null
+  childProfileId?: string
   giftInfo?: GiftInfo
 }
 
@@ -49,6 +60,7 @@ export interface Order {
   status: 'pending' | 'completed' | 'failed'
   is_gift: boolean
   gift_data: Record<string, GiftInfo> | null
+  child_profile_id: string | null
   created_at: string
   updated_at: string
 }
@@ -63,6 +75,7 @@ export interface SavedStory {
   story_data: StoryData
   cover_image_url: string | null
   is_purchased: boolean
+  child_profile_id: string | null
   created_at: string
   updated_at: string
 }

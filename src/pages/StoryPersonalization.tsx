@@ -5,9 +5,12 @@ import { supabase } from '../lib/supabase'
 import { StoryTemplate, StoryData, CartItem } from '../types/database'
 import { CartModal } from '../components/CartModal'
 import { Navbar } from '../components/Navbar'
+import { ChildProfileSelector } from '../components/ChildProfileSelector'
+import { AddChildModal } from '../components/AddChildModal'
 import { useCart } from '../hooks/useCart'
 import { useAuth } from '../contexts/AuthContext'
 import { useDebounce } from '../hooks/useDebounce'
+import { useChildProfiles } from '../hooks/useChildProfiles'
 import toast from 'react-hot-toast'
 
 interface OriginalPageType {
@@ -27,6 +30,7 @@ export function StoryPersonalization() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { addToCart } = useCart()
+  const { profiles, selectedProfile, loading: profilesLoading, selectProfile, addProfile } = useChildProfiles()
 
   const [template, setTemplate] = useState<StoryTemplate | null>(null)
   const [loading, setLoading] = useState(true)
@@ -38,6 +42,7 @@ export function StoryPersonalization() {
   const [currentPage, setCurrentPage] = useState(0)
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [showCartModal, setShowCartModal] = useState(false)
+  const [showAddChildModal, setShowAddChildModal] = useState(false)
   const [savedStoryId, setSavedStoryId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
@@ -67,6 +72,13 @@ export function StoryPersonalization() {
       updatePreview()
     }
   }, [debouncedChildName, storyArray])
+
+  useEffect(() => {
+    if (selectedProfile) {
+      setChildName(selectedProfile.name)
+      setGender(selectedProfile.gender)
+    }
+  }, [selectedProfile])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -203,6 +215,7 @@ export function StoryPersonalization() {
             story_data: storyData,
             cover_image_url: template.cover_image_url,
             is_purchased: false,
+            child_profile_id: selectedProfile?.id || null,
           })
           .select()
           .single()
@@ -234,7 +247,8 @@ export function StoryPersonalization() {
       childName: childName.trim(),
       gender,
       price: template.price_eur || 0,
-      coverImage: template.cover_image_url
+      coverImage: template.cover_image_url,
+      childProfileId: selectedProfile?.id || undefined
     }
 
     addToCart(cartItem)
@@ -302,6 +316,17 @@ export function StoryPersonalization() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Side - Editor */}
           <div className="space-y-6">
+            {/* Child Profile Selector */}
+            {user && (
+              <ChildProfileSelector
+                profiles={profiles}
+                selectedProfile={selectedProfile}
+                onSelectProfile={selectProfile}
+                onAddChild={() => setShowAddChildModal(true)}
+                loading={profilesLoading}
+              />
+            )}
+
             {/* Story Info Card */}
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               {template?.cover_image_url && (
@@ -587,6 +612,13 @@ export function StoryPersonalization() {
         onContinueBrowsing={handleContinueBrowsing}
         bookTitle={template?.title || ''}
         childName={childName}
+      />
+
+      {/* Add Child Modal */}
+      <AddChildModal
+        isOpen={showAddChildModal}
+        onClose={() => setShowAddChildModal(false)}
+        onAdd={addProfile}
       />
     </div>
   )
