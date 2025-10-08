@@ -11,7 +11,6 @@ export function NewTemplate() {
   const [uploadingImage, setUploadingImage] = useState(false)
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string>('')
   const [formData, setFormData] = useState({
-    slug: '',
     title: '',
     description: '',
     coverImageUrl: '',
@@ -83,11 +82,47 @@ export function NewTemplate() {
     setFormData((prev) => ({ ...prev, coverImageUrl: '' }))
   }
 
+  const generateSlug = (title: string): string => {
+    return title
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!formData.title.trim()) {
+      toast.error('Title is required')
+      return
+    }
+
+    if (!formData.description.trim()) {
+      toast.error('Description is required')
+      return
+    }
+
+    if (!formData.jsonUrlBoy.trim()) {
+      toast.error('JSON URL (Boy Version) is required')
+      return
+    }
+
+    if (!formData.jsonUrlGirl.trim()) {
+      toast.error('JSON URL (Girl Version) is required')
+      return
+    }
+
+    if (!formData.priceEur || parseFloat(formData.priceEur) <= 0) {
+      toast.error('Valid price is required')
+      return
+    }
+
     setLoading(true)
 
     try {
+      const slug = generateSlug(formData.title)
       const coverImageUrl = uploadedImageUrl || formData.coverImageUrl || null
 
       const tagsArray = formData.tags
@@ -96,20 +131,21 @@ export function NewTemplate() {
         .filter((tag) => tag.length > 0)
 
       const { error } = await supabase.from('story_templates').insert({
-        slug: formData.slug,
-        title: formData.title,
-        description: formData.description || null,
-        cover_image_url: coverImageUrl,
-        json_url_boy: formData.jsonUrlBoy || null,
-        json_url_girl: formData.jsonUrlGirl || null,
-        tags: tagsArray.length > 0 ? tagsArray : null,
+        slug,
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        gender: formData.gender,
         price_eur: parseFloat(formData.priceEur),
+        cover_image_url: coverImageUrl,
+        json_url_boy: formData.jsonUrlBoy.trim(),
+        json_url_girl: formData.jsonUrlGirl.trim(),
+        tags: tagsArray.length > 0 ? tagsArray : null,
         is_published: formData.isPublished,
       })
 
       if (error) throw error
 
-      toast.success('Template created successfully!')
+      toast.success('Template Created 🎉')
       navigate('/admin/dashboard')
     } catch (err) {
       console.error('Error creating template:', err)
@@ -184,27 +220,8 @@ export function NewTemplate() {
                   placeholder="Adventure in Space"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="slug"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Slug *
-                </label>
-                <input
-                  type="text"
-                  id="slug"
-                  name="slug"
-                  required
-                  value={formData.slug}
-                  onChange={handleChange}
-                  placeholder="adventure-in-space"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
                 <p className="text-xs text-gray-500 mt-1">
-                  URL-friendly identifier (lowercase, hyphens only)
+                  A URL-friendly slug will be auto-generated from the title
                 </p>
               </div>
 
