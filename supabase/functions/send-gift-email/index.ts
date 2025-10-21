@@ -1,5 +1,3 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -34,8 +32,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("VITE_SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("VITE_SUPABASE_SERVICE_ROLE_KEY")!;
 
     const response = await fetch(`${supabaseUrl}/rest/v1/gifted_stories?id=eq.${giftId}`, {
       headers: {

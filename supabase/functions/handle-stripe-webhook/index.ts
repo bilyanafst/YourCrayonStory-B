@@ -1,5 +1,8 @@
-import { createClient } from 'npm:@supabase/supabase-js@2'
-import Stripe from 'npm:stripe@14.21.0'
+/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
+
+import { createClient, SupabaseClient } from 'npm:@supabase/supabase-js@2.39.7'
+import Stripe from 'npm:stripe@14.24.0'
+import { Order } from '../../../src/types/database.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,8 +20,8 @@ Deno.serve(async (req) => {
     })
 
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('VITE_SUPABASE_URL') ?? '',
+      Deno.env.get('VITE_SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
     const signature = req.headers.get('stripe-signature')
@@ -89,7 +92,7 @@ Deno.serve(async (req) => {
   }
 })
 
-async function handleGiftOrder(order: any, supabase: any) {
+async function handleGiftOrder(order: Order, supabase: SupabaseClient) {
   try {
     console.log(`Processing gift order ${order.id}`)
     const cartItems = order.cart_data
@@ -120,10 +123,10 @@ async function handleGiftOrder(order: any, supabase: any) {
       const response = await fetch(jsonUrl)
       if (!response.ok) continue
 
-      const storyArray = await response.json()
+      const storyArray: { image: string; caption: string }[] = await response.json();
 
       // Personalize story pages
-      const personalizedPages = storyArray.map((page: any, index: number) => ({
+      const personalizedPages = storyArray.map((page: { image: string; caption: string }, index: number) => ({
         page_number: index + 1,
         image_base64: page.image.replace(/^data:image\/(png|jpeg);base64,/, ''),
         text: page.caption
@@ -182,8 +185,8 @@ async function handleGiftOrder(order: any, supabase: any) {
       if (sendDate <= now) {
         console.log(`Triggering immediate gift send for ${gift.id}`)
         try {
-          const supabaseUrl = Deno.env.get('SUPABASE_URL')
-          const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')
+          const supabaseUrl = Deno.env.get('VITE_SUPABASE_URL')
+          const supabaseKey = Deno.env.get('VITE_SUPABASE_ANON_KEY')
 
           // Call the send-gift-email function
           const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-gift-email`, {
@@ -214,7 +217,7 @@ async function handleGiftOrder(order: any, supabase: any) {
   }
 }
 
-async function generateAndSendPDFs(order: any, supabase: any) {
+async function generateAndSendPDFs(order: Order, supabase: SupabaseClient) {
   try {
     const cartItems = order.cart_data
 
@@ -238,10 +241,10 @@ async function generateAndSendPDFs(order: any, supabase: any) {
       const response = await fetch(jsonUrl)
       if (!response.ok) continue
 
-      const storyArray = await response.json()
+      const storyArray: { image: string; caption: string }[] = await response.json()
 
       // Personalize story pages (remove watermark logic here)
-      const personalizedPages = storyArray.map((page: any, index: number) => ({
+      storyArray.map((page: { image: string; caption: string }, index: number) => ({
         page_number: index + 1,
         image_base64: page.image.replace(/^data:image\/(png|jpeg);base64,/, ''),
         text: page.caption

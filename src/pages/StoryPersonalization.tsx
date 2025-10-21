@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { User, Loader2, Save, BookMarked, ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -50,54 +50,9 @@ export function StoryPersonalization() {
   const [isSaved, setIsSaved] = useState(false)
 
   const debouncedChildName = useDebounce(childName, 300)
-  const watermarkUrl = `${import.meta.env.SUPABASE_URL}/storage/v1/object/public/assets/watermark.png`
+  const watermarkUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/assets/watermark.png`
 
-  useEffect(() => {
-    if (slug) {
-      fetchTemplate()
-    }
-    const savedId = searchParams.get('savedId')
-    if (savedId) {
-      setSavedStoryId(savedId)
-      loadSavedStory(savedId)
-    }
-  }, [slug, searchParams, fetchTemplate])
-
-  useEffect(() => {
-    if (template) {
-      loadStoryData()
-    }
-  }, [template, gender])
-
-  useEffect(() => {
-    if (storyArray.length > 0) {
-      updatePreview()
-    }
-  }, [debouncedChildName, storyArray])
-
-  useEffect(() => {
-    if (selectedProfile) {
-      setChildName(selectedProfile.name)
-      setGender(selectedProfile.gender)
-    }
-  }, [selectedProfile])
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (personalizedPages.length === 0) return
-
-      if (e.key === 'ArrowLeft') {
-        setCurrentPage(prev => Math.max(0, prev - 1))
-      } else if (e.key === 'ArrowRight') {
-        setCurrentPage(prev => Math.min(personalizedPages.length - 1, prev + 1))
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [personalizedPages.length])
-
-  const loadSavedStory = async (id: string) => {
+  const loadSavedStory = useCallback(async (id: string) => {
     try {
       const { data, error } = await supabase
         .from('saved_stories')
@@ -116,9 +71,9 @@ export function StoryPersonalization() {
       console.error('Error loading saved story:', err)
       toast.error('Failed to load saved story')
     }
-  }
+  }, [])
 
-  const fetchTemplate = async () => {
+  const fetchTemplate = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('story_templates')
@@ -136,9 +91,20 @@ export function StoryPersonalization() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [slug])
 
-  const loadStoryData = async () => {
+  useEffect(() => {
+    if (slug) {
+      fetchTemplate()
+    }
+    const savedId = searchParams.get('savedId')
+    if (savedId) {
+      setSavedStoryId(savedId)
+      loadSavedStory(savedId)
+    }
+  }, [slug, searchParams, fetchTemplate, loadSavedStory])
+
+  const loadStoryData = useCallback(async () => {
     if (!template) return
 
     setLoadingPreview(true)
@@ -161,9 +127,15 @@ export function StoryPersonalization() {
     } finally {
       setLoadingPreview(false)
     }
-  }
+  }, [template, gender])
 
-  const updatePreview = () => {
+  useEffect(() => {
+    if (template) {
+      loadStoryData()
+    }
+  }, [template, gender, loadStoryData])
+
+  const updatePreview = useCallback(() => {
     const displayName = debouncedChildName.trim() || '____'
 
     const updatedPages = storyArray.map((page, index) => ({
@@ -176,7 +148,35 @@ export function StoryPersonalization() {
     }))
 
     setPersonalizedPages(updatedPages)
-  }
+  }, [debouncedChildName, storyArray])
+
+  useEffect(() => {
+    if (storyArray.length > 0) {
+      updatePreview()
+    }
+  }, [debouncedChildName, storyArray, updatePreview])
+
+  useEffect(() => {
+    if (selectedProfile) {
+      setChildName(selectedProfile.name)
+      setGender(selectedProfile.gender)
+    }
+  }, [selectedProfile])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (personalizedPages.length === 0) return
+
+      if (e.key === 'ArrowLeft') {
+        setCurrentPage(prev => Math.max(0, prev - 1))
+      } else if (e.key === 'ArrowRight') {
+        setCurrentPage(prev => Math.min(personalizedPages.length - 1, prev + 1))
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [personalizedPages.length])
 
   const handleSaveStory = async () => {
     if (!template || !childName.trim() || personalizedPages.length === 0 || !user) {
@@ -249,6 +249,7 @@ export function StoryPersonalization() {
       childName: childName.trim(),
       gender,
       price: template.price_eur || 0,
+      quantity: 1,
       coverImage: template.cover_image_url,
       childProfileId: selectedProfile?.id || undefined
     }

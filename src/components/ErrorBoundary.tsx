@@ -51,8 +51,8 @@ export class ErrorBoundary extends Component<Props, State> {
                   Required variables:
                 </p>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• SUPABASE_URL</li>
-                  <li>• SUPABASE_ANON_KEY</li>
+                  <li>• VITE_SUPABASE_URL</li>
+                  <li>• VITE_SUPABASE_ANON_KEY</li>
                 </ul>
               </div>
             )}

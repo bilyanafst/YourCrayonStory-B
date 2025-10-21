@@ -42,10 +42,10 @@ export default function Checkout() {
   const createPaymentIntent = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch(`${import.meta.env.SUPABASE_URL}/functions/v1/create-payment-intent`, {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-payment-intent`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, BookOpen, Edit, Trash2, ShoppingCart, Loader2, Star, MessageSquare } from 'lucide-react'
+import { ArrowLeft, BookOpen, Edit, Trash2, ShoppingCart, Loader2, Star } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { SavedStory, ChildProfile } from '../types/database'
@@ -28,18 +28,13 @@ export function MyStories() {
   const [reviewModalOpen, setReviewModalOpen] = useState(false)
   const [selectedStory, setSelectedStory] = useState<SavedStory | null>(null)
 
-  useEffect(() => {
-    if (user) {
-      Promise.all([fetchSavedStories(), fetchChildProfiles(), fetchReviews()])
-    }
-  }, [user])
-
-  const fetchSavedStories = async () => {
+  const fetchSavedStories = useCallback(async () => {
+    if (!user) return
     try {
       const { data, error } = await supabase
         .from('saved_stories')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -50,14 +45,15 @@ export function MyStories() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
 
-  const fetchChildProfiles = async () => {
+  const fetchChildProfiles = useCallback(async () => {
+    if (!user) return
     try {
       const { data, error } = await supabase
         .from('child_profiles')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: true })
 
       if (error) throw error
@@ -65,22 +61,28 @@ export function MyStories() {
     } catch (error) {
       console.error('Error fetching child profiles:', error)
     }
-  }
+  }, [user])
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
+    if (!user) return
     try {
       const { data, error } = await supabase
         .from('story_reviews')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
 
       if (error) throw error
       setReviews(data || [])
     } catch (error) {
       console.error('Error fetching reviews:', error)
     }
-  }
+  }, [user])
 
+  useEffect(() => {
+    if (user) {
+      Promise.all([fetchSavedStories(), fetchChildProfiles(), fetchReviews()])
+    }
+  }, [user, fetchChildProfiles, fetchReviews, fetchSavedStories])
   const getReviewForStory = (templateSlug: string, childName: string) => {
     return reviews.find(
       (review) => review.template_slug === templateSlug && review.child_name === childName
@@ -136,6 +138,7 @@ export function MyStories() {
       childName: story.child_name,
       gender: story.gender,
       price: 3.99,
+      quantity: 1,
       coverImage: story.cover_image_url,
       childProfileId: story.child_profile_id || undefined,
     })

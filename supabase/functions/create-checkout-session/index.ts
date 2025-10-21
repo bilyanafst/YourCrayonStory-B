@@ -1,5 +1,8 @@
-import { createClient } from 'npm:@supabase/supabase-js@2'
-import Stripe from 'npm:stripe@14.21.0'
+/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
+
+import { createClient } from 'npm:@supabase/supabase-js@2.39.7'
+import Stripe from 'npm:stripe@14.24.0'
+import { CartItem } from '../../../src/types/database.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,8 +17,8 @@ Deno.serve(async (req) => {
   try {
     // Initialize Supabase client
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('VITE_SUPABASE_URL') ?? '',
+      Deno.env.get('VITE_SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
@@ -29,10 +32,10 @@ Deno.serve(async (req) => {
     }
 
     // Calculate total amount
-    const totalAmount = items.reduce((sum: number, item: any) => sum + item.price, 0)
+    const totalAmount = items.reduce((sum: number, item: CartItem) => sum + item.price, 0)
 
     // Create line items for Stripe
-    const lineItems = items.map((item: any) => ({
+    const lineItems = items.map((item: CartItem) => ({
       price_data: {
         currency: 'eur',
         product_data: {
