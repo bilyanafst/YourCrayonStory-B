@@ -1,11 +1,13 @@
 import React, { Suspense, lazy, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route,  useNavigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { Loader2 } from 'lucide-react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AdminRoute } from './components/AdminRoute'
+import Footer from "./components/Footer"
+
 
 const Home = lazy(() => import('./pages/Home').then(m => ({ default: m.Home })))
 const Login = lazy(() => import('./pages/auth/Login').then(m => ({ default: m.Login })))
@@ -18,6 +20,8 @@ const MyStories = lazy(() => import('./pages/MyStories').then(m => ({ default: m
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })))
 const NewTemplate = lazy(() => import('./pages/admin/NewTemplate').then(m => ({ default: m.NewTemplate })))
 const EditTemplate = lazy(() => import('./pages/admin/EditTemplate').then(m => ({ default: m.EditTemplate })))
+const Terms = lazy(() => import('./pages/Terms'))
+const Privacy = lazy(() => import('./pages/Privacy'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,6 +77,8 @@ function App() {
             <Route path="/story/:slug" element={<StoryPersonalization />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/thank-you" element={<ThankYou />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
             <Route
               path="/auth/profile"
               element={
@@ -115,6 +121,7 @@ function App() {
             />
           </Routes>
         </Suspense>
+        <Footer />
       </Router>
       </AuthProvider>
     </QueryClientProvider>
