@@ -7,11 +7,12 @@ import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../hooks/useCart'
 import toast from 'react-hot-toast'
 import { GiftInfo } from '../types/database'
+import { CartItem } from '../types/cart'
 
 interface CheckoutFormProps {
   billingEmail: string
   billingName: string
-  cartItems: any[]
+  cartItems: CartItem[]
   totalAmount: number
   isGift?: boolean
   giftInfo?: GiftInfo
@@ -106,9 +107,11 @@ export function CheckoutForm({ billingEmail, billingName, cartItems, totalAmount
         clearCart()
         navigate('/thank-you', { state: { childName: cartItems[0]?.childName, isGift } })
       }
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Payment failed. Please try again.')
-      toast.error(err.message || 'Payment failed')
+    } catch (err: unknown) {
+       const message =
+    err instanceof Error ? err.message : 'Payment failed. Please try again.'
+    setErrorMessage(message)
+    toast.error(message)
     } finally {
       setLoading(false)
     }
