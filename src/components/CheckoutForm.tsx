@@ -6,8 +6,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../hooks/useCart'
 import toast from 'react-hot-toast'
-import { GiftInfo } from '../types/database'
-import { CartItem } from '../types/cart'
+import { GiftInfo, CartItem } from '../types/database'
 
 interface CheckoutFormProps {
   billingEmail: string

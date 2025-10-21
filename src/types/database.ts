@@ -40,14 +40,14 @@ export interface ChildProfile {
 }
 
 export interface CartItem {
+  id: string
   slug: string
   title: string
-  childName: string
-  gender: 'boy' | 'girl'
   price: number
-  coverImage: string | null
-  childProfileId?: string
-  giftInfo?: GiftInfo
+  quantity: number
+  childName?: string
+  gender?: string
+  coverImage?: string
 }
 
 export interface Order {

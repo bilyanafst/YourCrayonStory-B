@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { User, Loader2, Save, BookMarked, ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -50,7 +50,7 @@ export function StoryPersonalization() {
   const [isSaved, setIsSaved] = useState(false)
 
   const debouncedChildName = useDebounce(childName, 300)
-  const watermarkUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/assets/watermark.png`
+  const watermarkUrl = `${import.meta.env.SUPABASE_URL}/storage/v1/object/public/assets/watermark.png`
 
   useEffect(() => {
     if (slug) {
@@ -61,7 +61,7 @@ export function StoryPersonalization() {
       setSavedStoryId(savedId)
       loadSavedStory(savedId)
     }
-  }, [slug, searchParams])
+  }, [slug, searchParams, fetchTemplate])
 
   useEffect(() => {
     if (template) {

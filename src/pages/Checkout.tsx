@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { ArrowLeft, Loader2, Trash2 } from 'lucide-react'
 import { loadStripe, Stripe } from '@stripe/stripe-js'
@@ -27,7 +27,7 @@ export default function Checkout() {
   })
 
   useEffect(() => {
-    setStripePromise(loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ''))
+    setStripePromise(loadStripe(import.meta.env.STRIPE_PUBLISHABLE_KEY || ''))
   }, [])
 
   useEffect(() => {
@@ -38,39 +38,14 @@ export default function Checkout() {
       setBillingName(user.user_metadata.full_name)
     }
   }, [user])
-
-  if (!authLoading && !user) {
-    return <Navigate to="/auth/login" state={{ from: { pathname: '/checkout' } }} replace />
-  }
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center">
-        <div className="flex items-center space-x-3">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-          <span className="text-gray-600">Loading...</span>
-        </div>
-      </div>
-    )
-  }
-
-  if (cartItems.length === 0) {
-    return <Navigate to="/" replace />
-  }
-
-  useEffect(() => {
-    if (user && cartItems.length > 0 && !clientSecret) {
-      createPaymentIntent()
-    }
-  }, [user, cartItems, clientSecret])
-
-  const createPaymentIntent = async () => {
+  
+  const createPaymentIntent = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-payment-intent`, {
+      const response = await fetch(`${import.meta.env.SUPABASE_URL}/functions/v1/create-payment-intent`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${import.meta.env.SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -90,6 +65,31 @@ export default function Checkout() {
     } finally {
       setLoading(false)
     }
+  }, [user, cartItems])
+
+  useEffect(() => {
+    if (user && cartItems.length > 0 && !clientSecret) {
+      createPaymentIntent()
+    }
+  }, [user, cartItems, clientSecret, createPaymentIntent])
+
+  if (!authLoading && !user) {
+    return <Navigate to="/auth/login" state={{ from: { pathname: '/checkout' } }} replace />
+  }
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="flex items-center space-x-3">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <span className="text-gray-600">Loading...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (cartItems.length === 0) {
+    return <Navigate to="/" replace />
   }
 
   const appearance = {
