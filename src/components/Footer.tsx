@@ -24,10 +24,10 @@ export default function Footer() {
             We’d love to hear from you!
           </p>
           <a
-            href="mailto:hello@yourcrayonstory.com"
+            href="mailto:contact@yourcrayonstory.com"
             className="mt-3 inline-flex items-center text-pink-400 hover:text-pink-300 text-sm"
           >
-            <Mail className="w-4 h-4 mr-2" /> hello@yourcrayonstory.com
+            <Mail className="w-4 h-4 mr-2" />contact@yourcrayonstory.com
           </a>
         </div>
 

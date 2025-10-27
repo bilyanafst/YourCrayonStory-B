@@ -37,10 +37,10 @@ export default function Terms() {
         generally not available. However, if there’s a problem with your order,
         please contact us at{" "}
         <a
-          href="mailto:hello@yourcrayonstory.com"
+          href="mailto:contact@yourcrayonstory.com"
           className="text-pink-400 hover:text-pink-300"
         >
-          hello@yourcrayonstory.com
+          contact@yourcrayonstory.com
         </a>
         , and we’ll do our best to help.
       </p>
