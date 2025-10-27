@@ -49,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
@@ -58,19 +59,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     })
 
+    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      (async () => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        if (session?.user) {
-          await checkAdminStatus(session.user.id)
-        } else {
-          setIsAdmin(false)
-        }
-        setLoading(false)
-      })()
+      setSession(session)
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        checkAdminStatus(session.user.id)
+      } else {
+        setIsAdmin(false)
+      }
+      setLoading(false)
     })
 
     return () => subscription.unsubscribe()

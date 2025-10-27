@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { Eye, EyeOff, User, Mail, Lock } from 'lucide-react'
 
@@ -16,7 +16,6 @@ export function Register() {
 
   const { signUp } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

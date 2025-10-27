@@ -62,10 +62,10 @@ export default function Privacy() {
       <p className="mb-4">
         For privacy-related questions or data requests, email us at{" "}
         <a
-          href="mailto:contact@yourcrayonstory.com"
+          href="mailto:hello@yourcrayonstory.com"
           className="text-pink-400 hover:text-pink-300"
         >
-          contact@yourcrayonstory.com
+          hello@yourcrayonstory.com
         </a>
         .
       </p>
